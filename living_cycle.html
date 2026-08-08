@@ -50,7 +50,7 @@ input[type="range"]::-moz-range-track{height:6px;background:rgba(129,140,248,0.2
 input[type="range"]::-moz-range-thumb{width:18px;height:18px;border-radius:50%;background:#818cf8;border:none;box-shadow:0 0 8px rgba(129,140,248,0.4);cursor:pointer}
 </style>
 
-</head>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script></head>
 <body>
 <canvas id="sf"></canvas><div id="root"></div>
 <script>
@@ -708,34 +708,8 @@ function showBeing(){
 const e=tEvo();
 var selBeing=S.cs.being?BEINGS.find(b=>b.id==S.cs.being):null;
 var previewHtml='';
-if(selBeing){
-previewHtml='<div style="text-align:center;margin-bottom:16px"><div id="beingPreviewBox" style="width:160px;height:240px;margin:0 auto;border-radius:10px;overflow:hidden;box-shadow:0 0 20px rgba(129,140,248,0.3),0 4px 16px rgba(0,0,0,0.5);background:rgba(255,255,255,0.04);display:flex;align-items:center;justify-content:center;font-size:48px;color:rgba(255,255,255,0.3)">'+selBeing.n.charAt(0)+'</div><div style="margin-top:6px;font-size:14px;font-weight:600">'+selBeing.n+'</div><div class="mt" style="font-size:11px;max-width:200px;margin:4px auto">'+selBeing.d+'</div></div>';
-}
 R('<div style="padding-top:16px"><div class="ttl" style="font-size:18px">Choose Your Being</div><p class="sub" style="margin-bottom:12px">What form will your consciousness take?</p>'+previewHtml+'<div style="max-height:340px;overflow-y:auto;padding-right:4px">'+BEINGS.map(function(b){return '<div class="card'+(S.cs.being==b.id?' sel':'')+'" style="padding:8px 10px;margin-bottom:4px" onclick="S.cs.being=\''+b.id+'\';showBeing()"><div style="display:flex;justify-content:space-between;align-items:center"><span style="font-weight:600;font-size:13px">'+b.n+'</span>'+(Object.keys(b.m).length?'<span style="font-size:10px;color:#a5b4fc">'+Object.entries(b.m).map(function(kv){return (kv[1]>0?'+':'')+kv[1]+' '+sN(kv[0]).a}).join(' · ')+'</span>':'')+'</div><div class="cd" style="font-size:11px;margin-top:2px">'+b.d.substring(0,80)+(b.d.length>80?'...':'')+'</div></div>'}).join('')+'</div><div style="display:flex;gap:8px;margin-top:12px"><button class="btn btn-s" style="max-width:80px" onclick="showGoal()">Back</button><button class="btn btn-p" style="flex:1" '+(S.cs.being?'':'disabled')+' onclick="showLife()">Continue</button></div></div>');
-// Async load preview image - does NOT block UI
-if(selBeing){
-var bf=BEING_FEATURES[selBeing.id]||{};
-var p='Full body character concept art, hyper-realistic, '+selBeing.n+', ';
-if(bf.horns)p+='horns, ';if(bf.wings)p+='wings, ';if(bf.tail)p+='tail, ';if(bf.halo)p+='halo, ';
-if(bf.aura)p+='glowing aura, ';if(bf.eyes==='glow')p+='glowing eyes, ';if(bf.skin)p+=bf.skin+' skin, ';
-p+='dramatic lighting, dark background, fantasy art, 8K detailed, full body visible';
-var seed=selBeing.id.charCodeAt(0)*1000+selBeing.id.length*100;
-var pUrl='https://image.pollinations.ai/prompt/'+encodeURIComponent(p)+'?width=200&height=300&seed='+seed+'&nologo=true&model=flux';
-var img=new Image();
-img.onload=function(){
-var box=document.getElementById('beingPreviewBox');
-if(box){
-box.innerHTML='';
-var im=document.createElement('img');
-im.src=pUrl;
-im.style.cssText='width:100%;height:100%;object-fit:cover';
-im.onerror=function(){this.style.display='none'};
-box.appendChild(im);
-}
-};
-img.onerror=function(){};
-img.src=pUrl;
-}
+// Avatar preview image removed from being selection
 }
 function showLife(){const e=tEvo();R(`<div style="padding-top:16px"><div class="ttl" style="font-size:18px">Choose Your Path</div><p class="sub" style="margin-bottom:16px">What discipline will define your approach to life?</p>${LIFESTYLES.map(l=>{return`<div class="card${S.cs.life==l.id?' sel':''}" onclick="S.cs.life='${l.id}';showLife()"><div style="display:flex;justify-content:space-between"><span style="font-weight:600;font-size:14px">${l.n}</span></div><div class="cd">${l.d}</div><div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:6px">${Object.entries(l.m).map(([k,v])=>`<span class="bg bg-p">+${v} ${sN(k).a}</span>`).join('')}</div></div>`}).join('')}<div style="display:flex;gap:8px;margin-top:12px"><button class="btn btn-s" style="max-width:80px" onclick="showBeing()">Back</button><button class="btn btn-p" style="flex:1" ${S.cs.life?'':'disabled'} onclick="showWorld()">Continue</button></div></div>`)}
 function showWorld(){R(`<div style="padding-top:16px"><div class="ttl" style="font-size:18px">Choose Your World</div><p class="sub" style="margin-bottom:12px">When and where will you be born?</p>${ERAS.map(e=>`<div class="card${S.cs.era==e.id?' sel':''}" style="margin-bottom:6px" onclick="S.cs.era='${e.id}';S.cs.reg=null;showWorld()">${eraImg(e)}<div style="font-weight:600;font-size:14px;margin-bottom:2px">${e.n}</div><div class="cd">${e.d}</div></div>`).join('')}${S.cs.era?`<div class="sl">Region</div><div style="display:flex;flex-wrap:wrap;gap:6px">${REGIONS[S.cs.era].map(r=>`<span class="chip${S.cs.reg==r?' sel':''}" onclick="S.cs.reg='${r}';showWorld()">${r}</span>`).join('')}</div>`:''}<div style="display:flex;gap:8px;margin-top:12px"><button class="btn btn-s" style="max-width:80px" onclick="showLife()">Back</button><button class="btn btn-p" style="flex:1" ${S.cs.reg?'':'disabled'} onclick="showCirc()">Continue</button></div></div>`)}
@@ -825,13 +799,13 @@ var btn=document.getElementById('canvaExportBtn');
 if(btn){btn.textContent='Preparing portrait...';btn.disabled=true;}
 try{
 // If no portrait generated yet, generate one first
-if(!PORTRAIT_STATE.imgUrl){
-if(btn){btn.textContent='Generating portrait...';}
-generatePortrait();
+if(!AV3D.initDone){
+if(btn){btn.textContent='Loading 3D...';}
+av3dInit('avatar3D');
 // Wait for portrait to load
 var waitCount=0;
-while(PORTRAIT_STATE.loading&&waitCount<30){await new Promise(r=>setTimeout(r,1000));waitCount++;}
-if(!PORTRAIT_STATE.imgUrl){
+while(!AV3D.initDone&&waitCount<15){await new Promise(r=>setTimeout(r,500));waitCount++;}
+if(!AV3D.initDone){
 if(btn){btn.textContent='Export Portrait to Canva';btn.disabled=false;}
 alert('Portrait not ready. Click "Generate Portrait" first, then export.');
 return;
@@ -842,7 +816,7 @@ if(btn){btn.textContent='Uploading to Canva...';}
 var res=await fetch('https://miro-8307984e.base44.app/functions/canvaUpload',{
 method:'POST',
 headers:{'Content-Type':'application/json'},
-body:JSON.stringify({action:'upload',imageUrl:PORTRAIT_STATE.imgUrl,name:(S.cs.name||bname)+' - Living Cycle Avatar'})
+body:JSON.stringify({action:'upload',imageData:av3dSnapshot(),name:(S.cs.name||bname)+' - Living Cycle Avatar'})
 });
 var data=await res.json();
 if(data.success){
@@ -869,21 +843,13 @@ var ft=Math.floor(val/30.48);
 var inch=Math.round((val/2.54)%12);
 var el=document.getElementById('heightVal');
 if(el)el.textContent=val+'cm ('+ft+'ft '+inch+'in)';
-if(typeof portraitDebounce!=='undefined')clearTimeout(portraitDebounce);
-portraitDebounce=setTimeout(function(){
-PORTRAIT_STATE.lastPrompt='';
-generatePortrait();
-},1500);
+if(typeof AV3D!=='undefined'&&AV3D.initDone){av3dRebuild();}
 }
 function updateWeight(val){
 S.cs.ava.weight_kg=parseInt(val);
 var el=document.getElementById('weightVal');
 if(el)el.textContent=val+'kg ('+Math.round(val*2.205)+'lbs)';
-if(typeof portraitDebounce!=='undefined')clearTimeout(portraitDebounce);
-portraitDebounce=setTimeout(function(){
-PORTRAIT_STATE.lastPrompt='';
-generatePortrait();
-},1500);
+if(typeof AV3D!=='undefined'&&AV3D.initDone){av3dRebuild();}
 }
 
 function showAva(){
@@ -895,11 +861,8 @@ var canvaBtn=CANVA_CONNECTED
 :'<button class="btn btn-s" style="width:100%;margin-top:8px;font-size:11px;display:flex;align-items:center;justify-content:center;gap:6px" onclick="canvaConnect()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg> Connect Canva</button>';
 R('<div style="padding-top:16px"><div class="ttl" style="font-size:18px">Create Your Avatar</div>'+
 '<div style="text-align:center;margin:8px 0 12px">'+
-'<div id="portraitFrame" style="width:280px;height:400px;margin:0 auto;position:relative;border-radius:12px;overflow:hidden;box-shadow:0 0 30px rgba(129,140,248,0.3),0 4px 20px rgba(0,0,0,0.5);background:rgba(255,255,255,0.04);display:flex;align-items:center;justify-content:center">'+(PORTRAIT_STATE.imgUrl?'<img src="'+PORTRAIT_STATE.imgUrl+'" style="width:100%;height:100%;object-fit:cover"/>':'<div id="avaSvg" style="width:160px;height:160px;position:relative">'+renderAvatarSVG()+'</div>')+'</div>'+
-'<div style="display:flex;gap:6px;justify-content:center;margin-top:8px">'+
-'<button class="btn btn-p" style="max-width:140px;font-size:11px;padding:8px 12px" onclick="generatePortrait()">'+(PORTRAIT_STATE.imgUrl?'Update Portrait':'Generate Portrait')+'</button>'+
-(PORTRAIT_STATE.imgUrl?'<button class="btn btn-s" style="max-width:90px;font-size:10px;padding:8px 10px" onclick="regeneratePortrait()">New Variation</button>':'')+
-'</div>'+
+'<div id="avatar3D" style="width:280px;height:400px;margin:0 auto;position:relative;border-radius:12px;overflow:hidden;box-shadow:0 0 30px rgba(129,140,248,0.3),0 4px 20px rgba(0,0,0,0.5);background:rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center"><div style="font-size:10px;color:rgba(255,255,255,0.4)">Loading 3D...</div></div>'+
+'<div style="text-align:center;margin-top:6px;font-size:10px;color:rgba(255,255,255,0.45)">Drag to rotate &middot; Scroll to zoom &middot; Live 3D</div>'+
 '<div style="margin-top:8px;font-size:14px;font-weight:600;text-align:center">'+bname+'</div>'+
 '<div class="mt" style="font-size:12px;text-align:center">'+(S.cs.name||'Unnamed')+'</div>'+
 (selCount>0?'<div class="mt" style="font-size:10px;color:#a5b4fc;text-align:center">'+selCount+' features selected</div>':'')+
@@ -922,7 +885,7 @@ v.map(function(x){var isSel=sel.includes(x);return '<span class="chip'+(isSel?' 
 }).join('')+
 '<div style="margin-top:8px">'+canvaBtn+'</div>'+
 '<div style="display:flex;gap:8px;margin-top:12px"><button class="btn btn-s" style="max-width:80px" onclick="showCirc()">Back</button><button class="btn btn-s" style="max-width:80px" onclick="S.cs.ava={};showAva()">Reset</button><button class="btn btn-p" style="flex:1" onclick="showMods()">Continue</button></div></div>');
-setTimeout(function(){if(!CANVA_CONNECTED){canvaCheckStatus().then(function(){if(CANVA_CONNECTED)showAva();});}if(!PORTRAIT_STATE.imgUrl&&!PORTRAIT_STATE.loading){setTimeout(function(){generatePortrait();},500);}},50);
+setTimeout(function(){if(!CANVA_CONNECTED){canvaCheckStatus().then(function(){if(CANVA_CONNECTED)showAva();});}setTimeout(function(){av3dInit('avatar3D');},500);},50);
 }
 
 function togAva(k,x){
@@ -951,13 +914,8 @@ chip.classList.remove('sel');
 });
 // Update selected count
 var selCount=0;Object.values(S.cs.ava||{}).forEach(function(v){if(v&&v.length)selCount+=v.length});
-// Debounced portrait regeneration
-if(typeof portraitDebounce!=='undefined')clearTimeout(portraitDebounce);
-portraitDebounce=setTimeout(function(){
-// Always regenerate portrait with new features
-PORTRAIT_STATE.lastPrompt='';
-generatePortrait();
-},1500);
+// Real-time 3D avatar update (no debounce needed - instant!)
+if(typeof AV3D!=='undefined'&&AV3D.initDone){av3dRebuild();}
 }
 
 
@@ -1168,7 +1126,177 @@ document.addEventListener('click',function _ai(){aeInit();document.removeEventLi
 
 
 /* === AI PORTRAIT GENERATOR === */
-var PORTRAIT_STATE={loading:false,imgUrl:null,lastPrompt:'',seed:0};
+// === 3D AVATAR COLOR MAPS ===
+var SKIN_HEX={'Pale':'#f5d6c8','Fair':'#f0c8b0','Light':'#e8b890','Medium':'#d4a070','Tan':'#c89060','Olive':'#b88858','Brown':'#a06840','Dark':'#804828','Deep':'#582818','Ashen':'#9a9a98','Sapphire':'#3a5af0','Crimson':'#c8203a','Emerald':'#20a858','Golden':'#d4a830','Lavender':'#a080c8','Bronze Metallic':'#b08858'};
+var HAIR_HEX={'Black':'#1a1a1a','Dark Brown':'#3a2818','Brown':'#5a3828','Auburn':'#8a4828','Red':'#c8302a','Blonde':'#e8c860','Platinum':'#f0e8d0','White':'#f8f8f0','Grey':'#888880','Silver':'#c0c0c8','Blue':'#3a6ac8','Green':'#3ac868','Purple':'#8838a8','Pink':'#e870a8','Rainbow':'#e84040','Glowing Cyan':'#20e0e0','Crimson':'#c01030','Metallic Gold':'#e0b830'};
+var EYE_HEX={'Brown':'#5a3818','Amber':'#d09020','Hazel':'#806830','Green':'#3ac848','Blue':'#3a80e0','Grey':'#909098','Violet':'#9040c8','Golden':'#e0b820','Red':'#e02020','Crimson':'#c01030','Glowing Blue':'#20c0ff','Glowing Green':'#40ff80','Pure Light':'#f8f8f0','Slitted Gold':'#e0b820','Heterochromia':'#3a80e0','Cyber Red':'#ff2020','Starlit Silver':'#c0d0e8'};
+var BEING_FEATURES={human:{},ai:{eyes:'glow',aura:'#3a80e0'},cyborg:{eyes:'glow',aura:'#3a80e0'},synth:{aura:'#a080c8'},energy:{skin:'glow',aura:'#20e0e0'},crystal:{skin:'glow',aura:'#a080c8'},shifter:{aura:'#80c8a0'},hive:{eyes:'compound',aura:'#80a080'},android:{eyes:'glow',aura:'#3a80e0'},spirit:{skin:'translucent',aura:'#9090e0'},fae:{aura:'#a0c8e0'},celestial:{aura:'#f0e0a0'},void_walker:{aura:'#6030a0'},quantum:{aura:'#a080e0'},demon:{horns:true,aura:'#c83030'},vampire:{fangs:true,aura:'#c83030'},werewolf:{ears:'wolf',aura:'#a08060'},angel:{halo:true,wings:true,aura:'#f0e8a0'},ghost:{skin:'translucent',aura:'#a0a0e0'},undead:{skin:'pale',aura:'#80a080'},witch:{aura:'#8838a8'},merfolk:{aura:'#20a8c8'},phoenix:{aura:'#e84020',wings:'fire'},dragon:{horns:'dragon',aura:'#c84020'},lich:{aura:'#40a880'},nephilim:{aura:'#f0e8a0'},neko:{ears:'cat',tail:true,aura:'#f0c860'}};
+var OUTFIT_HEX={'Practical':'#4a4a5a','Ornate':'#6b3b5a','Minimal':'#5a5a6a','Armored':'#3a3a4a','Flowing':'#4a3a6a','Techwear':'#2a3a4a','Ceremonial':'#4a3060','Tattered':'#3a3020','Formal':'#2a2a3a','Nomadic':'#5a5040','Cybernetic':'#1a3a5a','Royal Robes':'#5a3a8a','Rags':'#4a3a2a','Exosuit':'#2a4a5a','Cloak':'#2a2a3a','Uniform':'#3a4a5a','Ceremonial Armor':'#4a3a6a','Streetwear':'#3a3a4a','Bio-suit':'#1a4a3a','Formal Gown':'#5a2a4a','Samurai':'#4a2a2a','Mage Robes':'#3a2a6a'};
+var FRAME_SCALE={'Slender':0.85,'Athletic':1.0,'Robust':1.15,'Petite':0.82,'Tall':1.05,'Imposing':1.25,'Ethereal':0.90,'Compact':0.88,'Gigantic':1.35,'Lean':0.92,'Curvy':1.05,'Wiry':0.88,'Stocky':1.10,'Muscular':1.15,'Heavy':1.25,'Delicate':0.80,'Towering':1.30};
+
+// === ENHANCED 3D AVATAR ENGINE ===
+var AV3D={scene:null,camera:null,renderer:null,canvas:null,group:null,rotY:0,rotX:0,autoRot:true,dragging:false,lastX:0,lastY:0,animId:null,initDone:false,camDist:6};
+function av3dInit(containerId){
+if(typeof THREE==='undefined'){console.log('Three.js not loaded');return false;}
+if(AV3D.initDone&&AV3D.canvas&&AV3D.canvas.parentNode){av3dRebuild();return true;}
+if(AV3D.initDone){av3dDestroy();}
+var container=document.getElementById(containerId);
+if(!container)return false;
+var w=280,h=400;
+AV3D.scene=new THREE.Scene();
+AV3D.camera=new THREE.PerspectiveCamera(30,w/h,0.1,100);
+AV3D.camera.position.set(0,0,AV3D.camDist);
+AV3D.camera.lookAt(0,-0.5,0);
+AV3D.renderer=new THREE.WebGLRenderer({antialias:true,alpha:true});
+AV3D.renderer.setSize(w,h);
+AV3D.renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));
+try{AV3D.renderer.toneMapping=THREE.ACESFilmicToneMapping;AV3D.renderer.toneMappingExposure=1.15;AV3D.renderer.shadowMap.enabled=true;AV3D.renderer.shadowMap.type=THREE.PCFSoftShadowMap;}catch(e){}
+AV3D.canvas=AV3D.renderer.domElement;
+AV3D.canvas.style.cursor='grab';
+AV3D.canvas.style.borderRadius='12px';
+container.innerHTML='';
+container.appendChild(AV3D.canvas);
+// Professional 3-point lighting + rim
+var amb=new THREE.AmbientLight(0x404060,0.35);AV3D.scene.add(amb);
+var key=new THREE.DirectionalLight(0xfff5e6,1.1);key.position.set(3,4,3);key.castShadow=true;key.shadow.mapSize.width=1024;key.shadow.mapSize.height=1024;key.shadow.camera.near=0.1;key.shadow.camera.far=20;key.shadow.camera.left=-3;key.shadow.camera.right=3;key.shadow.camera.top=3;key.shadow.camera.bottom=-3;key.shadow.bias=-0.0005;AV3D.scene.add(key);
+var fill=new THREE.DirectionalLight(0xccddff,0.35);fill.position.set(-3,1,2);AV3D.scene.add(fill);
+var rim=new THREE.DirectionalLight(0xff9966,0.5);rim.position.set(0,2,-4);AV3D.scene.add(rim);
+// Ground shadow
+var groundGeo=new THREE.PlaneGeometry(10,10);var groundMat=new THREE.ShadowMaterial({opacity:0.25});var ground=new THREE.Mesh(groundGeo,groundMat);ground.rotation.x=-Math.PI/2;ground.position.y=-2.5;ground.receiveShadow=true;AV3D.scene.add(ground);
+AV3D.group=new THREE.Group();AV3D.scene.add(AV3D.group);
+// Drag controls
+AV3D.canvas.addEventListener('mousedown',function(e){AV3D.autoRot=false;AV3D.dragging=true;AV3D.lastX=e.clientX;AV3D.lastY=e.clientY;AV3D.canvas.style.cursor='grabbing'});
+AV3D.canvas.addEventListener('mousemove',function(e){if(!AV3D.dragging)return;AV3D.rotY+=(e.clientX-AV3D.lastX)*0.01;AV3D.rotX+=(e.clientY-AV3D.lastY)*0.01;AV3D.rotX=Math.max(-0.5,Math.min(0.5,AV3D.rotX));AV3D.lastX=e.clientX;AV3D.lastY=e.clientY});
+AV3D.canvas.addEventListener('mouseup',function(){AV3D.dragging=false;AV3D.canvas.style.cursor='grab';setTimeout(function(){AV3D.autoRot=true},3000)});
+AV3D.canvas.addEventListener('mouseleave',function(){AV3D.dragging=false;AV3D.canvas.style.cursor='grab'});
+AV3D.canvas.addEventListener('wheel',function(e){e.preventDefault();AV3D.camDist+=e.deltaY*0.008;AV3D.camDist=Math.max(4,Math.min(10,AV3D.camDist))},{passive:false});
+AV3D.canvas.addEventListener('touchstart',function(e){AV3D.autoRot=false;AV3D.dragging=true;AV3D.lastX=e.touches[0].clientX;AV3D.lastY=e.touches[0].clientY;e.preventDefault()},{passive:false});
+AV3D.canvas.addEventListener('touchmove',function(e){if(!AV3D.dragging)return;AV3D.rotY+=(e.touches[0].clientX-AV3D.lastX)*0.01;AV3D.rotX+=(e.touches[0].clientY-AV3D.lastY)*0.01;AV3D.rotX=Math.max(-0.5,Math.min(0.5,AV3D.rotX));AV3D.lastX=e.touches[0].clientX;AV3D.lastY=e.touches[0].clientY;e.preventDefault()},{passive:false});
+AV3D.canvas.addEventListener('touchend',function(){AV3D.dragging=false;setTimeout(function(){AV3D.autoRot=true},3000)});
+AV3D.initDone=true;
+av3dRebuild();
+av3dAnimate();
+return true;
+}
+function av3dClear(){if(!AV3D.group)return;while(AV3D.group.children.length>0){var obj=AV3D.group.children[0];AV3D.group.remove(obj);if(obj.geometry)obj.geometry.dispose();if(obj.material){if(Array.isArray(obj.material))obj.material.forEach(function(m){m.dispose()});else obj.material.dispose()}}}
+function av3dMat(color,opts){opts=opts||{};var m=new THREE.MeshStandardMaterial({color:new THREE.Color(color),roughness:opts.rough||0.6,metalness:opts.metal||0,transparent:opts.alpha?true:false,opacity:opts.alpha||1,emissive:new THREE.Color(opts.emit||0),emissiveIntensity:opts.ei||0});return m}
+function av3dRebuild(){
+if(!AV3D.initDone||!AV3D.group)return;
+av3dClear();
+var a=S.cs.ava||{};var being=S.cs.being||'human';var bf=BEING_FEATURES[being]||{};
+var skin=(a.skin_tone&&a.skin_tone[0])||'Medium';var hairS=(a.hair_style&&a.hair_style[0])||'Short';var hairC=(a.hair_color&&a.hair_color[0])||'Brown';var eyeC=(a.eye_color&&a.eye_color[0])||'Brown';var expr=(a.expression&&a.expression[0])||'Neutral';var frame=(a.body_frame&&a.body_frame[0])||'Athletic';var outfit=(a.outfit&&a.outfit[0])||'Practical';
+var hasHorns=bf.horns||a.distinguishing&&a.distinguishing.includes('Horns');var hasHalo=bf.halo||a.distinguishing&&a.distinguishing.includes('Halo');var hasCatEars=bf.ears==='cat'||a.distinguishing&&a.distinguishing.includes('Cat Ears');var hasWolfEars=bf.ears==='wolf';var hasFangs=bf.fangs||a.distinguishing&&a.distinguishing.includes('Fangs');var hasTail=bf.tail||a.distinguishing&&a.distinguishing.includes('Tail');var hasWhiskers=a.distinguishing&&a.distinguishing.includes('Whiskers');var hasWings=bf.wings||a.distinguishing&&a.distinguishing.includes('Energy Wings');var hasThirdEye=a.distinguishing&&a.distinguishing.includes('Third Eye');
+var skinHex=SKIN_HEX[skin]||'#d4a070';var hairHex=HAIR_HEX[hairC]||'#5a3828';var eyeHex=EYE_HEX[eyeC]||'#5a3818';var aura=bf.aura||'#818cf8';
+var isTrans=bf.skin==='translucent';var isGlow=bf.skin==='glow';var skinAlpha=isTrans?0.55:1;
+var glowEyes=bf.eyes==='glow'||eyeC.includes('Glowing')||eyeC==='Cyber Red';
+var skinMat=av3dMat(skinHex,{alpha:skinAlpha,emit:isGlow?aura:0,ei:isGlow?0.3:0,rough:isGlow?0.3:0.6});
+// === BODY (full body below head) ===
+// Torso
+var torsoPoints=[new THREE.Vector2(0.05,0),new THREE.Vector2(0.42,-0.05),new THREE.Vector2(0.52,-0.12),new THREE.Vector2(0.48,-0.4),new THREE.Vector2(0.38,-0.7),new THREE.Vector2(0.42,-0.9),new THREE.Vector2(0.35,-1.05),new THREE.Vector2(0.02,-1.1)];
+var torsoGeo=new THREE.LatheGeometry(torsoPoints,24);var torso=new THREE.Mesh(torsoGeo,skinMat);torso.castShadow=true;torso.receiveShadow=true;AV3D.group.add(torso);
+// Arms
+[-1,1].forEach(function(side){
+var sh=new THREE.Mesh(new THREE.SphereGeometry(0.14,16,16),skinMat);sh.position.set(side*0.55,-0.1,0);sh.castShadow=true;AV3D.group.add(sh);
+var ua=new THREE.Mesh(new THREE.CylinderGeometry(0.08,0.07,0.55,16),skinMat);ua.position.set(side*0.62,-0.38,0);ua.castShadow=true;AV3D.group.add(ua);
+var el=new THREE.Mesh(new THREE.SphereGeometry(0.07,16,16),skinMat);el.position.set(side*0.65,-0.66,0);AV3D.group.add(el);
+var fa=new THREE.Mesh(new THREE.CylinderGeometry(0.06,0.05,0.5,16),skinMat);fa.position.set(side*0.67,-0.92,0);fa.castShadow=true;AV3D.group.add(fa);
+var hd=new THREE.Mesh(new THREE.SphereGeometry(0.07,16,16),skinMat);hd.position.set(side*0.68,-1.18,0);hd.scale.set(0.8,1.3,0.5);hd.castShadow=true;AV3D.group.add(hd);
+});
+// Legs
+[-1,1].forEach(function(side){
+var th=new THREE.Mesh(new THREE.CylinderGeometry(0.12,0.10,0.65,16),skinMat);th.position.set(side*0.15,-1.35,0);th.castShadow=true;AV3D.group.add(th);
+var kn=new THREE.Mesh(new THREE.SphereGeometry(0.10,16,16),skinMat);kn.position.set(side*0.15,-1.68,0);AV3D.group.add(kn);
+var sn=new THREE.Mesh(new THREE.CylinderGeometry(0.09,0.06,0.6,16),skinMat);sn.position.set(side*0.15,-1.98,0);sn.castShadow=true;AV3D.group.add(sn);
+var ft=new THREE.Mesh(new THREE.BoxGeometry(0.13,0.06,0.25),skinMat);ft.position.set(side*0.15,-2.3,0.06);ft.castShadow=true;AV3D.group.add(ft);
+});
+// === OUTFIT overlay ===
+var outfitHex=OUTFIT_HEX[outfit]||'#4a4a5a';
+var outfitMat=av3dMat(outfitHex,{rough:0.7,metal:outfit.includes('Armor')||outfit.includes('Armored')?0.4:0});
+var oTop=new THREE.Mesh(new THREE.CylinderGeometry(0.50,0.42,0.9,24),outfitMat);oTop.position.y=-0.4;oTop.castShadow=true;AV3D.group.add(oTop);
+var oCol=new THREE.Mesh(new THREE.SphereGeometry(0.55,16,8,0,Math.PI*2,0,Math.PI/2),outfitMat);oCol.scale.set(1.5,0.3,1);oCol.position.y=0.05;AV3D.group.add(oCol);
+[-1,1].forEach(function(side){
+var oLeg=new THREE.Mesh(new THREE.CylinderGeometry(0.12,0.09,1.3,16),outfitMat);oLeg.position.set(side*0.15,-1.5,0);oLeg.castShadow=true;AV3D.group.add(oLeg);
+var oSh=new THREE.Mesh(new THREE.SphereGeometry(0.15,16,16),outfitMat);oSh.position.set(side*0.55,-0.1,0);oSh.scale.set(1,0.5,1);oSh.castShadow=true;AV3D.group.add(oSh);
+});
+// === HEAD ===
+var headGeo=new THREE.SphereGeometry(1,32,32);headGeo.scale(0.9,1.05,0.95);
+var head=new THREE.Mesh(headGeo,skinMat);head.castShadow=true;AV3D.group.add(head);
+var neckGeo=new THREE.CylinderGeometry(0.35,0.45,0.5,16);var neck=new THREE.Mesh(neckGeo,skinMat);neck.position.y=-1.1;AV3D.group.add(neck);
+// Nose
+var noseGeo=new THREE.ConeGeometry(0.08,0.25,8);var nose=new THREE.Mesh(noseGeo,skinMat);nose.position.set(0,-0.05,0.95);nose.rotation.x=0.3;AV3D.group.add(nose);
+// Eyes
+var eyeWhiteMat=av3dMat('#f8f8f0',{rough:0.3,alpha:glowEyes?0.4:1});
+var irisMat=av3dMat(eyeHex,{rough:0.2,emit:glowEyes?eyeHex:0,ei:glowEyes?0.6:0});
+var eyeY=-0.05,eyeZ=0.82,eyeX=0.32;
+var eSize=0.18;if(expr==='Surprised')eSize=0.22;if(expr==='Smiling'||expr==='Laughing')eSize=0.12;if(expr==='Angry')eSize=0.14;
+[-eyeX,eyeX].forEach(function(x){
+var w=new THREE.Mesh(new THREE.SphereGeometry(eSize,16,16),eyeWhiteMat);w.position.set(x,eyeY,eyeZ);w.scale.z=0.4;AV3D.group.add(w);
+var i=new THREE.Mesh(new THREE.SphereGeometry(eSize*0.5,12,12),irisMat);i.position.set(x,eyeY,eyeZ+eSize*0.3);i.scale.z=0.4;AV3D.group.add(i);
+var p=new THREE.Mesh(new THREE.SphereGeometry(eSize*0.2,8,8),av3dMat('#1a1a1a'));p.position.set(x,eyeY,eyeZ+eSize*0.35);p.scale.z=0.3;AV3D.group.add(p);
+});
+if(hasThirdEye){var t=new THREE.Mesh(new THREE.SphereGeometry(0.12,12,12),av3dMat('#8a48a8',{emit:'#8a48a8',ei:0.5}));t.position.set(0,0.35,eyeZ);t.scale.z=0.4;AV3D.group.add(t);}
+// Eyebrows
+var browY=0.22,browAng=0;
+if(expr==='Angry'){browY=0.18;browAng=0.3}else if(expr==='Sad'){browY=0.12;browAng=-0.3}else if(expr==='Surprised'){browY=0.28;browAng=0}else if(expr==='Fierce'){browY=0.16;browAng=0.35}
+[-eyeX,eyeX].forEach(function(x,side){var b=new THREE.Mesh(new THREE.BoxGeometry(0.22,0.04,0.08),av3dMat(hairHex));b.position.set(x,browY,eyeZ+0.05);b.rotation.z=browAng*(side===0?1:-1);AV3D.group.add(b);});
+// Mouth
+var mY=-0.35,mZ=0.85;var mouthShape=new THREE.Group();
+if(expr==='Smiling'||expr==='Content'||expr==='Laughing'){var t=new THREE.Mesh(new THREE.TorusGeometry(0.15,0.03,8,16,Math.PI),av3dMat('#c84040'));t.position.set(0,mY,mZ);t.rotation.z=Math.PI;mouthShape.add(t);
+}else if(expr==='Fierce'||expr==='Angry'){var b=new THREE.Mesh(new THREE.BoxGeometry(0.22,0.04,0.05),av3dMat('#c84040'));b.position.set(0,mY+0.03,mZ);mouthShape.add(b);
+}else if(expr==='Sad'){var t=new THREE.Mesh(new THREE.TorusGeometry(0.12,0.03,8,16,Math.PI),av3dMat('#c84040'));t.position.set(0,mY,mZ);t.rotation.z=0;mouthShape.add(t);
+}else if(expr==='Surprised'){var s=new THREE.Mesh(new THREE.SphereGeometry(0.06,12,12),av3dMat('#6a2828'));s.position.set(0,mY,mZ);s.scale.z=0.3;mouthShape.add(s);
+}else{var b=new THREE.Mesh(new THREE.BoxGeometry(0.16,0.025,0.05),av3dMat('#8a4838'));b.position.set(0,mY,mZ);mouthShape.add(b);}
+AV3D.group.add(mouthShape);
+// Fangs
+if(hasFangs){[-0.05,0.05].forEach(function(x){var f=new THREE.Mesh(new THREE.ConeGeometry(0.025,0.1,6),av3dMat('#fff',{rough:0.2}));f.position.set(x,mY-0.04,mZ+0.02);AV3D.group.add(f);});}
+// Whiskers
+if(hasWhiskers){[[-0.3,-0.25,0.7],[0.3,0.25,0.7],[-0.3,-0.32,0.65],[0.3,0.32,0.65]].forEach(function(p){var w=new THREE.Mesh(new THREE.CylinderGeometry(0.005,0.005,0.3,4),av3dMat('#e0c8b0'));w.position.set(p[0],mY-0.05,p[2]);w.rotation.z=Math.atan2(p[1],p[0]);w.rotation.y=Math.PI/2;AV3D.group.add(w);});}
+// === HAIR ===
+if(hairS!=='Bald'){
+var hMat=av3dMat(hairHex,{rough:0.7});
+if(hairS==='Buzz Cut'){var cap=new THREE.Mesh(new THREE.SphereGeometry(0.92,16,16,0,Math.PI*2,0,Math.PI/2.2),hMat);cap.position.y=0.05;AV3D.group.add(cap);}
+else if(hairS==='Short'){var cap=new THREE.Mesh(new THREE.SphereGeometry(0.96,20,20,0,Math.PI*2,0,Math.PI/2),hMat);cap.position.y=0.02;cap.scale.y=0.9;AV3D.group.add(cap);}
+else if(hairS==='Medium'||hairS==='Wavy'){var cap=new THREE.Mesh(new THREE.SphereGeometry(1.0,20,20,0,Math.PI*2,0,Math.PI/1.8),hMat);cap.position.y=0;cap.scale.y=0.95;AV3D.group.add(cap);[-0.7,0.7].forEach(function(x){var s=new THREE.Mesh(new THREE.SphereGeometry(0.35,12,12,0,Math.PI*2,0,Math.PI),hMat);s.position.set(x,-0.3,0);s.scale.y=1.5;AV3D.group.add(s);});}
+else if(hairS==='Long'||hairS==='Flowing'){var cap=new THREE.Mesh(new THREE.SphereGeometry(1.02,20,20,0,Math.PI*2,0,Math.PI/1.6),hMat);cap.position.y=-0.05;AV3D.group.add(cap);[-0.75,0.75].forEach(function(x){var s=new THREE.Mesh(new THREE.SphereGeometry(0.38,12,16),hMat);s.position.set(x,-0.6,0);s.scale.set(1,2.5,1);AV3D.group.add(s);});}
+else if(hairS==='Braided'){var cap=new THREE.Mesh(new THREE.SphereGeometry(0.96,20,20,0,Math.PI*2,0,Math.PI/1.8),hMat);cap.position.y=0;AV3D.group.add(cap);[-0.6,0.6].forEach(function(x){for(var i=0;i<3;i++){var seg=new THREE.Mesh(new THREE.SphereGeometry(0.12,8,8),hMat);seg.position.set(x,-0.3-i*0.25,0);seg.scale.y=0.8;AV3D.group.add(seg);}});}
+else if(hairS==='Ponytail'){var cap=new THREE.Mesh(new THREE.SphereGeometry(0.96,20,20,0,Math.PI*2,0,Math.PI/1.8),hMat);cap.position.y=0;AV3D.group.add(cap);var pt=new THREE.Mesh(new THREE.CylinderGeometry(0.1,0.08,0.8,8),hMat);pt.position.set(0.5,-0.5,-0.3);pt.rotation.z=0.5;AV3D.group.add(pt);}
+else if(hairS==='Twin Tails'){var cap=new THREE.Mesh(new THREE.SphereGeometry(0.96,20,20,0,Math.PI*2,0,Math.PI/1.8),hMat);cap.position.y=0;AV3D.group.add(cap);[-0.6,0.6].forEach(function(x){var pt=new THREE.Mesh(new THREE.CylinderGeometry(0.08,0.06,0.7,8),hMat);pt.position.set(x,-0.4,-0.2);pt.rotation.z=x>0?0.3:-0.3;AV3D.group.add(pt);});}
+else if(hairS==='Curly'){for(var i=0;i<12;i++){var ang=(i/12)*Math.PI*2;var r=0.98+Math.sin(i*2)*0.05;var cl=new THREE.Mesh(new THREE.SphereGeometry(0.18,8,8),hMat);cl.position.set(Math.cos(ang)*r,0.3+Math.sin(i)*0.1,Math.sin(ang)*r);AV3D.group.add(cl);}}
+else if(hairS==='Afro'){var af=new THREE.Mesh(new THREE.SphereGeometry(1.15,20,20),hMat);af.position.y=0.15;af.scale.y=0.85;AV3D.group.add(af);}
+else if(hairS==='Mohawk'){var mk=new THREE.Mesh(new THREE.BoxGeometry(0.25,0.6,0.7),hMat);mk.position.y=0.55;AV3D.group.add(mk);}
+else if(hairS==='Spiked'){for(var i=0;i<8;i++){var ang=(i/8)*Math.PI*2-0.2;var sp=new THREE.Mesh(new THREE.ConeGeometry(0.1,0.35,6),hMat);sp.position.set(Math.cos(ang)*0.85,0.35,Math.sin(ang)*0.85);sp.rotation.x=Math.PI;sp.rotation.z=-ang;AV3D.group.add(sp);}}
+else if(hairS==='Top Knot'){var cap=new THREE.Mesh(new THREE.SphereGeometry(0.96,20,20,0,Math.PI*2,0,Math.PI/1.8),hMat);cap.position.y=0;AV3D.group.add(cap);var kn=new THREE.Mesh(new THREE.SphereGeometry(0.18,12,12),hMat);kn.position.y=0.65;AV3D.group.add(kn);}
+else if(hairS==='Synth Plating'||hairS==='Energy Crown'){for(var i=0;i<6;i++){var ang=(i/6)*Math.PI*2;var pl=new THREE.Mesh(new THREE.BoxGeometry(0.15,0.3,0.1),av3dMat(hairHex,{metal:0.8,rough:0.3,emit:hairHex,ei:0.2}));pl.position.set(Math.cos(ang)*0.9,0.35,Math.sin(ang)*0.9);pl.lookAt(0,0.8,0);AV3D.group.add(pl);}}
+else{var cap=new THREE.Mesh(new THREE.SphereGeometry(0.96,20,20,0,Math.PI*2,0,Math.PI/1.8),hMat);cap.position.y=0;AV3D.group.add(cap);}
+}
+// === BEING FEATURES ===
+if(hasCatEars){[-0.4,0.4].forEach(function(x){var e=new THREE.Mesh(new THREE.ConeGeometry(0.18,0.35,8),av3dMat(hairHex));e.position.set(x,0.95,0);e.rotation.z=x>0?-0.2:0.2;AV3D.group.add(e);var i2=new THREE.Mesh(new THREE.ConeGeometry(0.1,0.2,6),av3dMat('#f8c8c0',{alpha:0.6}));i2.position.set(x,0.92,0.05);i2.rotation.z=x>0?-0.2:0.2;AV3D.group.add(i2);});}
+if(hasWolfEars){[-0.4,0.4].forEach(function(x){var e=new THREE.Mesh(new THREE.ConeGeometry(0.15,0.45,8),av3dMat(hairHex));e.position.set(x,0.9,0);e.rotation.z=x>0?-0.3:0.3;AV3D.group.add(e);});}
+if(hasHorns){var hornMat=av3dMat(hasHorns!==true?'#c83020':'#6a2818',{rough:0.4});[-0.5,0.5].forEach(function(x){var h=new THREE.Mesh(new THREE.ConeGeometry(0.1,0.5,8),hornMat);h.position.set(x,0.8,-0.1);h.rotation.z=x>0?-0.4:0.4;h.rotation.x=-0.2;AV3D.group.add(h);});}
+if(hasHalo){var h=new THREE.Mesh(new THREE.TorusGeometry(0.6,0.04,8,32),av3dMat('#f0e8a0',{emit:'#f0e8a0',ei:0.6,rough:0.3}));h.position.y=1.1;h.rotation.x=0.3;AV3D.group.add(h);}
+if(hasWings){var wMat=av3dMat(aura,{alpha:0.4,emit:bf.wings==='fire'?'#e84020':aura,ei:0.3});[-1,1].forEach(function(side){var w=new THREE.Mesh(new THREE.SphereGeometry(0.5,12,8),wMat);w.position.set(side*0.8,-0.2,-0.3);w.scale.set(0.4,0.8,0.1);w.rotation.z=side*0.3;AV3D.group.add(w);});}
+if(hasTail){var t=new THREE.Mesh(new THREE.CylinderGeometry(0.04,0.08,0.8,8),av3dMat(hairHex));t.position.set(0.6,-1.2,0.3);t.rotation.z=0.6;t.rotation.x=0.3;AV3D.group.add(t);}
+// Aura
+if(bf.aura||isGlow){var ptLight=new THREE.PointLight(new THREE.Color(aura),0.5,5);ptLight.position.set(0,0,2);AV3D.scene.add(ptLight);var aMesh=new THREE.Mesh(new THREE.SphereGeometry(1.8,16,16),new THREE.MeshBasicMaterial({color:new THREE.Color(aura),transparent:true,opacity:0.06,side:THREE.BackSide}));AV3D.group.add(aMesh);}
+// === HEIGHT/WEIGHT/FRAME SCALING ===
+var heightCm=a.height_cm||170;var weightKg=a.weight_kg||70;
+var heightScale=heightCm/170;var weightScale=1+(weightKg-70)/200;var frameScale=FRAME_SCALE[frame]||1.0;
+AV3D.group.scale.set(weightScale*frameScale,heightScale,weightScale*frameScale);
+AV3D.group.rotation.y=AV3D.rotY;AV3D.group.rotation.x=AV3D.rotX;
+}
+function av3dAnimate(){
+if(!AV3D.initDone)return;
+if(AV3D.autoRot)AV3D.rotY+=0.005;
+if(AV3D.group){AV3D.group.rotation.y=AV3D.rotY;AV3D.group.rotation.x=AV3D.rotX;}
+if(AV3D.camera){AV3D.camera.position.z=AV3D.camDist;AV3D.camera.lookAt(0,-0.5,0);}
+if(AV3D.renderer&&AV3D.scene&&AV3D.camera)AV3D.renderer.render(AV3D.scene,AV3D.camera);
+AV3D.animId=requestAnimationFrame(av3dAnimate);
+}
+function av3dDestroy(){if(AV3D.animId)cancelAnimationFrame(AV3D.animId);AV3D.animId=null;AV3D.initDone=false;if(AV3D.renderer){AV3D.renderer.dispose();AV3D.renderer=null;}if(AV3D.canvas&&AV3D.canvas.parentNode)AV3D.canvas.parentNode.removeChild(AV3D.canvas);AV3D.canvas=null;AV3D.scene=null;AV3D.group=null;}
+function av3dSnapshot(){if(!AV3D.initDone||!AV3D.renderer)return null;AV3D.renderer.render(AV3D.scene,AV3D.camera);return AV3D.renderer.domElement.toDataURL('image/png');}
+// === END 3D AVATAR ENGINE ===
+
+var PORTRAIT_STATE={loading:false,imgUrl:null,lastPrompt:'',seed:0};;
 
 function buildPortraitPrompt(){
 var a=S.cs.ava||{};var being=S.cs.being||'human';var b=BEINGS.find(b=>b.id==being);
@@ -1328,55 +1456,10 @@ var p=parts.join(', ')+'.';
 return p;
 }
 
-function generatePortrait(){
-var prompt=buildPortraitPrompt();
-if(PORTRAIT_STATE.loading)return;
-if(prompt===PORTRAIT_STATE.lastPrompt&&PORTRAIT_STATE.imgUrl&&PORTRAIT_STATE.lastPrompt!=='')return;
-PORTRAIT_STATE.loading=true;
-PORTRAIT_STATE.lastPrompt=prompt;
-if(!PORTRAIT_STATE.seed)PORTRAIT_STATE.seed=Math.floor(Math.random()*999999);
-var el=document.getElementById('portraitFrame');
-if(!el)return;
-el.innerHTML='<div style="width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px"><div style="width:40px;height:40px;border:3px solid rgba(129,140,248,0.3);border-top-color:#818cf8;border-radius:50%;animation:spin 0.8s linear infinite"></div><div style="font-size:11px;color:rgba(255,255,255,0.5);text-align:center">Generating portrait...<br><span style="font-size:9px;color:rgba(255,255,255,0.3)">'+prompt.substring(0,80)+'...</span></div></div>'+
-'<style>@keyframes spin{to{transform:rotate(360deg)}}</style>';
-var url='https://image.pollinations.ai/prompt/'+encodeURIComponent(prompt)+'?width=400&height=600&seed='+PORTRAIT_STATE.seed+'&nologo=true&model=flux';
-var img=new Image();
-img.onload=function(){
-PORTRAIT_STATE.loading=false;
-PORTRAIT_STATE.imgUrl=url;
-// Update portrait frame in place - NO full re-render
-var frame=document.getElementById('portraitFrame');
-if(frame){
-frame.innerHTML='<img src="'+url+'" style="width:100%;height:100%;object-fit:cover"/>';
-}
-// Update the generate/variation buttons in place
-var genBtn=document.querySelector('[onclick="generatePortrait()"]');
-if(genBtn)genBtn.textContent='Update Portrait';
-var variationWrap=genBtn?genBtn.parentElement:null;
-if(variationWrap&&!variationWrap.querySelector('[onclick="regeneratePortrait()"]')){
-var varBtn=document.createElement('button');
-varBtn.className='btn btn-s';
-varBtn.style.cssText='max-width:90px;font-size:10px;padding:8px 10px';
-varBtn.textContent='New Variation';
-varBtn.setAttribute('onclick','regeneratePortrait()');
-variationWrap.appendChild(varBtn);
-}
-};
-img.onerror=function(){
-PORTRAIT_STATE.loading=false;
-if(el){
-el.innerHTML='<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:8px"><div style="font-size:11px;color:rgba(248,113,113,0.8);text-align:center">Portrait generation failed</div><button class="btn btn-s" style="max-width:120px;font-size:10px" onclick="generatePortrait()">Retry</button></div>';
-}
-};
-img.src=url;
-}
+function generatePortrait(){av3dInit('avatar3D');}
 
-function regeneratePortrait(){
-PORTRAIT_STATE.seed=Math.floor(Math.random()*999999);
-PORTRAIT_STATE.lastPrompt='';
-PORTRAIT_STATE.imgUrl=null;
-generatePortrait();
-}
+function regeneratePortrait(){AV3D.rotY=0;AV3D.rotX=0;AV3D.camDist=6;av3dRebuild();}
+function toggleSeedLock(){}
 
 /* === BEING FEATURES === */
 var BEING_FEATURES={

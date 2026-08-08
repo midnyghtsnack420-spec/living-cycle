@@ -1,0 +1,1008 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+#sf{position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:0;pointer-events:none}
+#root{position:relative;z-index:1;max-width:780px;margin:0 auto;padding:20px 16px 60px;min-height:100vh}
+.fade{animation:fi .4s ease}
+@keyframes fi{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+@keyframes glow{0%,100%{box-shadow:0 0 6px hsl(var(--primary)/.3)}50%{box-shadow:0 0 16px hsl(var(--primary)/.5)}}
+.pw{animation:glow 2.5s ease infinite}
+.pw-lock{opacity:.35;cursor:not-allowed}
+::-webkit-scrollbar{width:6px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:hsl(var(--muted-foreground)/.3);border-radius:3px}
+
+/* Dark theme overrides for readability */
+#root{background:rgba(8,8,20,0.92);color:#e2e8f0}
+#root .bg-card{background:rgba(255,255,255,0.06)!important}
+#root .text-card-foreground{color:#e2e8f0!important}
+#root .text-muted-foreground{color:rgba(255,255,255,0.5)!important}
+#root .bg-muted{background:rgba(255,255,255,0.08)!important}
+#root .border{border-color:rgba(255,255,255,0.15)!important}
+#root .border-input{border-color:rgba(255,255,255,0.15)!important}
+#root .border-primary{border-color:#818cf8!important}
+#root .bg-primary{background:#818cf8!important;color:#fff!important}
+#root .text-primary{color:#a5b4fc!important}
+#root .text-primary-foreground{color:#fff!important}
+#root .bg-secondary{background:rgba(255,255,255,0.1)!important}
+#root .text-secondary-foreground{color:#e2e8f0!important}
+#root .text-destructive{color:#f87171!important}
+#root .bg-destructive{background:#ef4444!important}
+#root .bg-primary\/20{background:rgba(129,140,248,0.2)!important}
+#root input{background:rgba(255,255,255,0.08)!important;color:#e2e8f0!important;border-color:rgba(255,255,255,0.15)!important}
+#root input::placeholder{color:rgba(255,255,255,0.3)!important}
+#root button:disabled{opacity:0.35!important}
+</style>
+</head>
+<body>
+<canvas id="sf"></canvas>
+<div id="root"></div>
+<script>
+// ========== DATA ==========
+const STATS=[
+{id:'consciousness',abbr:'CON',name:'Consciousness',desc:'Awareness of self and the cosmos. Depth of spiritual perception.'},
+{id:'wisdom',abbr:'WIS',name:'Wisdom',desc:'Knowledge tempered by experience. Seeing patterns and meaning.'},
+{id:'power',abbr:'POW',name:'Power',desc:'Influence and strength. Ability to shape events and bend wills.'},
+{id:'compassion',abbr:'COM',name:'Compassion',desc:'Empathy and connection. The depth of your bond with others.'},
+{id:'creativity',abbr:'CRE',name:'Creativity',desc:'Expression and innovation. Bringing new things into existence.'},
+{id:'resilience',abbr:'RES',name:'Resilience',desc:'Endurance and adaptability. Withstanding and recovering.'},
+{id:'vitality',abbr:'VIT',name:'Vitality',desc:'Physical health and life force. Directly affects lifespan.'},
+{id:'wealth',abbr:'WEL',name:'Wealth',desc:'Material resources and prosperity. Opens doors and buys time.'},
+{id:'charisma',abbr:'CHA',name:'Charisma',desc:'Social influence and presence. How others perceive and respond.'},
+{id:'intellect',abbr:'INT',name:'Intellect',desc:'Raw cognitive power. Logic, analysis, processing speed.'},
+{id:'instinct',abbr:'INS',name:'Instinct',desc:'Intuition and primal awareness. Knowing without thinking.'},
+{id:'harmony',abbr:'HAR',name:'Harmony',desc:'Inner balance and alignment. Peace with self and cosmos.'},
+];
+
+const BEINGS=[
+{id:'human',name:'Human',desc:'A mortal being of flesh and spirit. The default condition of consciousness.',mods:{}},
+{id:'ai',name:'AI Construct',desc:'A digital consciousness born in silicon and code. Pure intellect, no physical form.',mods:{intellect:3,instinct:-2,vitality:-1}},
+{id:'cyborg',name:'Cyborg',desc:'Part human, part machine. The bridge between organic and synthetic existence.',mods:{power:2,intellect:1,resilience:1,harmony:-1}},
+{id:'synth',name:'Synthetic',desc:'Fully synthetic humanoid. Built, not born. Engineered perfection.',mods:{resilience:3,vitality:2,compassion:-2}},
+{id:'energy',name:'Energy Being',desc:'Pure consciousness in luminous form. No physical body — you are light and thought.',mods:{consciousness:4,vitality:-2,power:-1}},
+{id:'crystal',name:'Crystal Being',desc:'Mineral lifeform of geometric precision. Slow to think, eternal in patience.',mods:{resilience:3,wisdom:2,charisma:-2,instinct:-1}},
+{id:'shifter',name:'Shapeshifter',desc:'Your form is fluid. You are whoever you need to be.',mods:{charisma:3,creativity:2,harmony:-2}},
+{id:'hive',name:'Hive Mind',desc:'Many bodies, one consciousness. You are legion.',mods:{intellect:2,resilience:3,consciousness:1,compassion:-2}},
+{id:'android',name:'Android',desc:'Artificial human, indistinguishable from the original. The question of your nature haunts you.',mods:{charisma:2,intellect:2,instinct:-2,harmony:-1}},
+{id:'spirit',name:'Spirit',desc:'Incorporeal being existing between planes. You interact with the physical only indirectly.',mods:{consciousness:3,instinct:2,power:-2,vitality:-3}},
+{id:'fae',name:'Fae',desc:'A being of the otherworld, bound by ancient rules and eternal whimsy.',mods:{creativity:3,charisma:2,resilience:-1,wealth:-1}},
+{id:'celestial',name:'Celestial',desc:'A cosmic entity of immense scale. Stars are your playthings.',mods:{power:4,consciousness:2,compassion:-2,vitality:-1},req:10},
+{id:'void_walker',name:'Void Walker',desc:'From the spaces between dimensions. Reality bends around you.',mods:{consciousness:3,resilience:2,creativity:1,harmony:-3},req:8},
+{id:'quantum',name:'Quantum Being',desc:'You exist in multiple states simultaneously. Every possibility is real until observed.',mods:{intellect:3,consciousness:2,creativity:2,harmony:-2},req:12},
+];
+
+const ERAS=[
+{id:'prehistoric',name:'Prehistoric',desc:'Before civilization. Stone, fire, and the wild.'},
+{id:'ancient',name:'Ancient World',desc:'The first civilizations. Bronze, kings, and gods.'},
+{id:'bronze_collapse',name:'Bronze Age Collapse',desc:'Civilizations crumble. The world goes dark.'},
+{id:'medieval',name:'Medieval Age',desc:'Knights, plagues, and faith.'},
+{id:'golden_age',name:'Golden Age',desc:'A legendary era of peace and prosperity, now half-myth.'},
+{id:'renaissance',name:'Renaissance',desc:'Art, science, and the rebirth of curiosity.'},
+{id:'industrial',name:'Industrial Era',desc:'Steam, steel, and the march of progress.'},
+{id:'modern',name:'Modern Age',desc:'The information era. Connected, chaotic, accelerating.'},
+{id:'post_apoc',name:'Post-Apocalyptic',desc:'After the fall. Ruins, radiation, and survival.'},
+{id:'near_future',name:'Near Future',desc:'Mars colonies, neural links, and the edge of AI awakening.'},
+{id:'singularity',name:'Singularity Era',desc:'AI surpasses humanity. The merger begins.'},
+{id:'interstellar',name:'Interstellar Age',desc:'Humanity reaches the stars. New worlds, new beings.'},
+{id:'galactic',name:'Galactic Empire',desc:'A civilization spanning the galaxy. Power beyond imagining.'},
+{id:'cosmic',name:'Cosmic Era',desc:'Beyond planets. Beyond stars. Beyond physical need.'},
+{id:'heat_death',name:'Heat Death',desc:'The end of the universe. Entropy wins. The last lights flicker.'},
+];
+
+const REGIONS={
+prehistoric:['African Savanna','European Tundra','Asian Steppe','Coastal Delta','Mountain Valley','Jungle Canopy'],
+ancient:['Mesopotamia','Egypt','Greece','China','India','Mesoamerica'],
+bronze_collapse:['Ruined Mycenae','Fallen Hittite Lands','Devastated Canaan','Burning Anatolia','Silent Crete'],
+medieval:['Feudal Europe','Islamic Golden Age','Samurai Japan','Mali Empire','Mongol Steppes','Byzantine Remnant'],
+golden_age:['City of Pillars','Crystal Isles','Verdant Valley','Library Spire','Garden of Beginnings'],
+renaissance:['Florence','Venice','Low Countries','Elizabethan England','Mughal India','Ming China'],
+industrial:['Victorian England','Gilded Age America','Bismarck Germany','Meiji Japan','Colonial India'],
+modern:['New York','Silicon Valley','Tokyo','Mumbai','Sao Paulo','Berlin'],
+post_apoc:['Irradiated Wastes','Underground Vault','Floating Raft City','Mutant Badlands','Scavenger Plains','Vault of Old Ones'],
+near_future:['Mars Colony Olympus','Orbital Station Harmony','Mega-City Cascadia','Lunar Base Selene','Ocean Floor Habitas'],
+singularity:['The Merge Spire','Downtown Silicon','Consciousness Cloud','Physical Reservation','Server City Prime'],
+interstellar:['Proxima Colony','Generation Ship Asgard','Trappist Station','Frontier World','Ring World Elysium'],
+galactic:['Capital World','Outer Rim Frontier','Core Worlds','Dead Star Station','Nebula Kingdoms'],
+cosmic:['Dyson Sphere Aurora','Energy Realm','The Between','Consciousness Sea','Galactic Core','Void Cathedral'],
+heat_death:['Last Star','Dying Ember','Final Archive','Entropy Edge','Black Hole Citadel'],
+};
+
+const FAMILIES=[
+{id:'noble',name:'Noble Born',desc:'Privilege and expectation',mods:{power:1,wealth:1},years:3},
+{id:'common',name:'Common Folk',desc:'Simple, honest life',mods:{resilience:1},years:0},
+{id:'hardship',name:'Hardship',desc:'Struggle from the start',mods:{resilience:2,compassion:-1},years:-5},
+{id:'solitary',name:'Solitary',desc:'Orphan or alone',mods:{consciousness:1,compassion:-1},years:-2},
+{id:'loving',name:'Loving Home',desc:'Warmth and support',mods:{compassion:2,harmony:1},years:2},
+{id:'tumultuous',name:'Tumultuous',desc:'Chaos and conflict',mods:{resilience:1,power:1,compassion:-1},years:-3},
+{id:'spiritual',name:'Spiritual Community',desc:'Raised in tradition',mods:{consciousness:1,wisdom:1,harmony:1},years:1},
+{id:'nomadic',name:'Nomadic',desc:'Always moving',mods:{resilience:1,creativity:1,instinct:1},years:0},
+];
+
+const CHALLENGES=[
+{id:'war',name:'War',desc:'Conflict ravages the land',mods:{power:1,resilience:1},years:-5},
+{id:'famine',name:'Famine',desc:'Starvation threatens all',mods:{resilience:1,vitality:-1},years:-3},
+{id:'plague',name:'Plague',desc:'Disease sweeps the land',mods:{compassion:1,vitality:-2},years:-5},
+{id:'prosperity',name:'Prosperity',desc:'Abundance surrounds you',mods:{power:1,wealth:2,harmony:1},years:5},
+{id:'discovery',name:'Discovery',desc:'New truths emerge',mods:{wisdom:1,intellect:1,creativity:1},years:2},
+{id:'intrigue',name:'Political Intrigue',desc:'Shadows and schemes',mods:{wisdom:1,charisma:1,instinct:1},years:-2},
+{id:'catastrophe',name:'Natural Catastrophe',desc:'The earth itself turns against you',mods:{resilience:2,harmony:-1},years:-3},
+{id:'revolution',name:'Social Revolution',desc:'The old order falls',mods:{power:1,charisma:1,creativity:1},years:-2},
+{id:'spiritual_crisis',name:'Spiritual Crisis',desc:'The gods fall silent',mods:{consciousness:2,harmony:-2},years:0},
+{id:'tech_upheaval',name:'Technological Upheaval',desc:'Everything changes overnight',mods:{creativity:2,intellect:1,harmony:-1},years:2},
+];
+
+const GOALS=[
+{id:'enlightenment',name:'Enlightenment',desc:'Achieve spiritual transcendence and break the cycle',cat:'spiritual'},
+{id:'legacy',name:'Lasting Legacy',desc:'Leave a mark on history that outlives you by centuries',cat:'material'},
+{id:'mastery',name:'Mastery',desc:'Perfect a craft or discipline to an unprecedented level',cat:'intellectual'},
+{id:'connection',name:'Connection',desc:'Build bonds so deep they transcend a single life',cat:'social'},
+{id:'supreme_power',name:'Supreme Power',desc:'Rise to the absolute top. No one stands above you',cat:'material'},
+{id:'discovery_goal',name:'Discovery',desc:'Uncover truths hidden from all who came before',cat:'intellectual'},
+{id:'inner_harmony',name:'Inner Harmony',desc:'Find perfect balance within yourself and the world',cat:'spiritual'},
+{id:'boundless_wealth',name:'Boundless Wealth',desc:'Accumulate riches beyond imagination',cat:'material'},
+{id:'true_freedom',name:'True Freedom',desc:'Live completely unconstrained by any force',cat:'survival'},
+{id:'transformation',name:'Transformation',desc:'Become something greater than what you were',cat:'spiritual'},
+{id:'service',name:'Service to All',desc:'Dedicate your existence to the wellbeing of others',cat:'social'},
+{id:'total_knowledge',name:'Total Knowledge',desc:'Understand everything. Every system, every mystery',cat:'intellectual'},
+{id:'creation',name:'Creation',desc:'Bring something entirely new into existence',cat:'creative'},
+{id:'pure_survival',name:'Pure Survival',desc:'Simply survive. Against all odds, stay alive',cat:'survival'},
+{id:'artistic_glory',name:'Artistic Glory',desc:'Create works of such beauty they echo through eternity',cat:'creative'},
+];
+
+const LIFESTYLES=[
+{id:'scholar',name:'Scholar',desc:'Pursuer of knowledge and truth',mods:{wisdom:2,consciousness:1,intellect:1}},
+{id:'warrior',name:'Warrior',desc:'Master of combat and strategy',mods:{power:2,resilience:1,vitality:1}},
+{id:'healer',name:'Healer',desc:'Bringer of restoration and care',mods:{compassion:2,wisdom:1,vitality:1}},
+{id:'artist',name:'Artist',desc:'Creator of beauty and expression',mods:{creativity:2,consciousness:1,charisma:1}},
+{id:'mystic',name:'Mystic',desc:'Seeker of the divine',mods:{consciousness:2,wisdom:1,instinct:1}},
+{id:'builder',name:'Builder',desc:'Maker of things and systems',mods:{power:1,creativity:1,resilience:1,intellect:1}},
+{id:'explorer',name:'Explorer',desc:'Wanderer of unknown paths',mods:{resilience:2,consciousness:1,instinct:1}},
+{id:'merchant',name:'Merchant',desc:'Trader and dealmaker',mods:{power:1,wisdom:1,wealth:2,charisma:1}},
+{id:'leader',name:'Leader',desc:'Ruler and influencer',mods:{power:2,charisma:2,compassion:1}},
+{id:'farmer',name:'Farmer',desc:'Tender of earth and community',mods:{resilience:2,compassion:1,vitality:1,harmony:1}},
+{id:'sage',name:'Sage',desc:'Embodiment of knowledge itself',mods:{consciousness:3,wisdom:2,compassion:1,harmony:1},req:4},
+{id:'sovereign',name:'Sovereign',desc:'Nations bend to your will',mods:{power:3,wisdom:1,resilience:1,charisma:2},req:4},
+{id:'architect',name:'Architect',desc:'Designer of civilizations',mods:{creativity:3,power:1,wisdom:1,intellect:2},req:4},
+{id:'bodhisattva',name:'Bodhisattva',desc:'You choose to stay out of compassion',mods:{compassion:3,consciousness:2,wisdom:1,harmony:2},req:4},
+{id:'wanderer',name:'Wanderer',desc:'Exist between worlds and definitions',mods:{resilience:3,consciousness:2,creativity:1,instinct:1},req:6},
+];
+
+const AVATAR_OPTS={
+body:['Slender','Athletic','Robust','Petite','Tall','Imposing','Ethereal','Compact'],
+head:['Bald','Short Hair','Long Hair','Braided','Crowned','Hooded','Helmeted','Synth Plating','Energy Crown','Optical Array'],
+eyes:['Brown','Blue','Green','Grey','Golden','Violet','Glowing Blue','Red Optic','Holographic','Compound','None','Pure Light'],
+markings:['None','Tribal Tattoos','Battle Scars','Cybernetic Lines','Energy Patterns','Runic Marks','Barcode','Crystalline Veins','Glowing Sigils','Fractal Patterns'],
+attire:['Practical','Ornate','Minimal','Armored','Flowing','Techwear','Ceremonial','Tattered','Formal','Nomadic'],
+distinguishing:['None','Glowing Eyes','Mechanical Arm','Visible Aura','Energy Wings','Tail','Horns','Halo','Shadow Companion','Third Eye','Visible Core','Fractal Skin'],
+};
+
+const MODS=[
+{id:'none',name:'Unmodified',desc:'No cybernetic or synthetic enhancements',stats:{},beings:'all'},
+{id:'neural',name:'Neural Implant',desc:'Embedded processor enhances cognitive function',stats:{intellect:2},beings:'all'},
+{id:'optical',name:'Optical Upgrade',desc:'See beyond the visible spectrum',stats:{consciousness:1,instinct:1},beings:'all'},
+{id:'strength',name:'Strength Enhancement',desc:'Synthetic muscle fibers amplify power',stats:{power:2,vitality:1},beings:'all'},
+{id:'shield',name:'Shield Generator',desc:'Personal energy shield absorbs damage',stats:{resilience:3},beings:'all'},
+{id:'memory',name:'Memory Core',desc:'Secondary memory bank stores everything',stats:{wisdom:2,intellect:1},beings:'all'},
+{id:'emotion',name:'Emotion Chip',desc:'Module simulates and processes emotions',stats:{compassion:2,charisma:1},beings:['ai','synth','android']},
+{id:'chrome',name:'Chrome Plating',desc:'Reflective outer shell, unmistakably artificial',stats:{resilience:2,charisma:-1},beings:['cyborg','synth','android']},
+{id:'energy_core',name:'Visible Energy Core',desc:'Glowing power source visible through chest',stats:{power:2,vitality:1,harmony:-1},beings:['cyborg','synth','android','energy','void_walker']},
+{id:'liquid',name:'Liquid Metal Form',desc:'Programmable liquid metal allows shape alteration',stats:{creativity:2,charisma:1,resilience:1},beings:['synth','shifter']},
+{id:'holographic',name:'Holographic Skin',desc:'Surface can display any image or pattern',stats:{charisma:3,creativity:1},beings:['synth','android','shifter','fae']},
+{id:'ascended',name:'Ascended AI Integration',desc:'Merged consciousness of organic and artificial intelligence',stats:{intellect:3,consciousness:2,harmony:-2},beings:'all'},
+];
+
+const FLAVOR={
+prehistoric:{mentor:'tribal elder',town:'camp',journey:'migration',weapon:'stone spear',temple:'sacred cave',scroll:'painted stone',spirit:'ancestor spirit',leader:'clan chief',home:'your tribe\'s camp',town_cap:'Camp'},
+ancient:{mentor:'village elder',town:'city',journey:'expedition',weapon:'bronze blade',temple:'ziggurat',scroll:'clay tablet',spirit:'household god',leader:'chieftain',home:'your family\'s home',town_cap:'City'},
+bronze_collapse:{mentor:'surviving elder',town:'ruined city',journey:'exodus',weapon:'rusted blade',temple:'abandoned temple',scroll:'crumbled tablet',spirit:'forgotten god',leader:'warlord',home:'the ruins you shelter in',town_cap:'Ruin'},
+medieval:{mentor:'traveling scholar',town:'village',journey:'pilgrimage',weapon:'steel sword',temple:'cathedral',scroll:'illuminated manuscript',spirit:'saint',leader:'lord',home:'your cottage',town_cap:'Village'},
+golden_age:{mentor:'wise master',town:'crystal city',journey:'sacred journey',weapon:'staff of light',temple:'great spire',scroll:'crystal tablet',spirit:'ancient one',leader:'council elder',home:'your luminous dwelling',town_cap:'Crystal City'},
+renaissance:{mentor:'university professor',town:'city-state',journey:'grand tour',weapon:'rapier',temple:'basilica',scroll:'printed book',spirit:'patron saint',leader:'doge',home:'your family\'s townhouse',town_cap:'City-State'},
+industrial:{mentor:'self-made industrialist',town:'factory town',journey:'voyage',weapon:'revolver',temple:'town hall',scroll:'newspaper',spirit:'spirit of progress',leader:'baron',home:'your modest quarters',town_cap:'Factory Town'},
+modern:{mentor:'renowned expert',town:'metropolis',journey:'expedition',weapon:'sidearm',temple:'research center',scroll:'laptop',spirit:'collective unconscious',leader:'CEO',home:'your apartment',town_cap:'Metropolis'},
+post_apoc:{mentor:'wasteland survivor',town:'settlement',journey:'scavenging run',weapon:'improvised club',temple:'old bunker',scroll:'tattered journal',spirit:'old world ghost',leader:'war chief',home:'your shelter',town_cap:'Settlement'},
+near_future:{mentor:'AI mentor',town:'colony',journey:'interplanetary voyage',weapon:'energy weapon',temple:'the nexus',scroll:'neural download',spirit:'network consciousness',leader:'colony director',home:'your habitat module',town_cap:'Colony'},
+singularity:{mentor:'merged intelligence',town:'consciousness cloud',journey:'dimensional crossing',weapon:'cognitive weapon',temple:'merge spire',scroll:'data stream',spirit:'ascended ones',leader:'the collective',home:'your allocated consciousness space',town_cap:'Consciousness Cloud'},
+interstellar:{mentor:'starship captain',town:'colony station',journey:'interstellar voyage',weapon:'plasma rifle',temple:'ring cathedral',scroll:'data crystal',spirit:'void between stars',leader:'fleet admiral',home:'your quarters on the station',town_cap:'Station'},
+galactic:{mentor:'imperial advisor',town:'capital world',journey:'galactic crossing',weapon:'pulse cannon',temple:'imperial palace',scroll:'holographic archive',spirit:'the force',leader:'emperor',home:'your estate on the capital',town_cap:'Capital World'},
+cosmic:{mentor:'cosmic being',town:'energy realm',journey:'dimensional crossing',weapon:'mental weapon',temple:'the nexus',scroll:'thought pattern',spirit:'the source',leader:'council of beings',home:'your energy formation',town_cap:'Energy Realm'},
+heat_death:{mentor:'last conscious being',town:'dying ember',journey:'final journey',weapon:'entropy weapon',temple:'final archive',scroll:'last data crystal',spirit:'the void',leader:'no one',home:'the last warm pocket',town_cap:'Dying Ember'},
+};
+
+const SUPERPOWERS=[
+// Tier 1 - Evolution 3+
+{id:'foresight',name:'Foresight',tier:1,reqEvo:3,reqStat:'wisdom',reqStatLvl:3,desc:'Glimpse consequences of a choice before committing. Reveals stat changes and year effects.',uses:3,type:'active'},
+{id:'vital_surge',name:'Vital Surge',tier:1,reqEvo:3,reqStat:'vitality',reqStatLvl:3,desc:'Restore 5 years to your lifespan instantly.',uses:1,type:'active'},
+{id:'iron_will',name:'Iron Will',tier:1,reqEvo:3,reqStat:'resilience',reqStatLvl:3,desc:'Negate all negative stat effects from your next choice. Only positive effects apply.',uses:2,type:'active'},
+// Tier 2 - Evolution 6+
+{id:'mind_meld',name:'Mind Meld',tier:2,reqEvo:6,reqStat:'intellect',reqStatLvl:5,desc:'Read the true intentions of those around you. Reveals hidden info about the current scenario.',uses:2,type:'active'},
+{id:'empathic_bond',name:'Empathic Bond',tier:2,reqEvo:6,reqStat:'compassion',reqStatLvl:5,desc:'Transform a hostile situation friendly. Turns negative consequences into neutral.',uses:1,type:'active'},
+{id:'creative_flow',name:'Creative Flow',tier:2,reqEvo:6,reqStat:'creativity',reqStatLvl:5,desc:'Double all positive stat gains from your next choice.',uses:2,type:'active'},
+// Tier 3 - Evolution 9+
+{id:'chrono_step',name:'Chrono Step',tier:3,reqEvo:9,reqStat:'consciousness',reqStatLvl:7,desc:'Rewind time. Undo your last choice and try again knowing all outcomes.',uses:1,type:'active'},
+{id:'power_surge',name:'Power Surge',tier:3,reqEvo:9,reqStat:'power',reqStatLvl:7,desc:'Force a positive outcome. Next choice gains +2 to all stats and +3 years.',uses:1,type:'active'},
+{id:'shadow_walk',name:'Shadow Walk',tier:3,reqEvo:9,reqStat:'instinct',reqStatLvl:7,desc:'Phase through danger. Skip the current scenario entirely with no consequences.',uses:1,type:'active'},
+// Tier 4 - Evolution 12+
+{id:'cosmic_sight',name:'Cosmic Sight',tier:4,reqEvo:12,reqStat:'consciousness',reqStatLvl:10,desc:'See beyond the veil. All choices reveal consequences and goal alignment for the rest of this life.',uses:1,type:'passive'},
+{id:'life_weave',name:'Life Weave',tier:4,reqEvo:12,reqStat:'harmony',reqStatLvl:10,desc:'Rebalance your soul. Set all stats to the average of your highest and lowest.',uses:1,type:'active'},
+{id:'wealth_manifest',name:'Wealth Manifestation',tier:4,reqEvo:12,reqStat:'wealth',reqStatLvl:10,desc:'Material abundance flows to you. +3 Wealth and +1 all other stats for rest of this life.',uses:1,type:'passive'},
+// Tier 5 - Evolution 15+
+{id:'transcendence',name:'Transcendence',tier:5,reqEvo:15,reqStat:'consciousness',reqStatLvl:12,desc:'Break the cycle entirely. Achieve the ultimate ending regardless of stats or choices.',uses:1,type:'active'},
+{id:'reality_shift',name:'Reality Shift',tier:5,reqEvo:15,reqStat:'power',reqStatLvl:12,desc:'Rewrite reality. Gain +3 to all stats and +5 years instantly.',uses:1,type:'active'},
+{id:'eternal_flame',name:'Eternal Flame',tier:5,reqEvo:15,reqStat:'vitality',reqStatLvl:12,desc:'Become immortal for the remainder of this life. Time no longer decreases. You cannot die.',uses:1,type:'passive'},
+];
+
+const SCENARIOS=[
+{id:'mentor',stage:'childhood',title:"The Mentor's Offer",
+text:'You are {age} when a {mentor} passes through {town} and notices something in you — a spark, a hunger, a quality others your age lack. They offer to take you as apprentice, to teach the deeper ways. But it means leaving {home}, the people, the life you know.',
+choices:[
+{text:'Accept — leave everything for knowledge',outcome:'You pack what little you own and follow the {mentor}. The first months ache with missing {home}. But slowly, knowledge fills the empty spaces, and you begin to become something new.',effects:{wisdom:3,power:1,compassion:-1,intellect:1},years:2,aligns:['intellectual','spiritual'],misaligns:['social','survival']},
+{text:'Stay — your place is here with your people',outcome:'You decline. The {mentor} nods slowly, as if they expected this. You remain among your people, learning the rhythms of seasons, the small wisdoms of a life close to the ground.',effects:{compassion:2,resilience:1,wisdom:-1,harmony:1},years:1,aligns:['social','survival'],misaligns:['intellectual']},
+{text:'Bargain — ask for a year to prepare',outcome:'The {mentor} agrees but warns that opportunity does not wait. You spend the year preparing, saying goodbyes, gathering courage. When the year ends, the {mentor} has moved on. You must now find your own path.',effects:{wisdom:1,resilience:1,power:-1,instinct:1},years:1,aligns:['intellectual','survival'],misaligns:['material']},
+]},
+
+{id:'discovery',stage:'childhood',title:'The Strange Discovery',
+text:'While exploring near {home}, you find something no one else has seen — a {scroll} half-buried, a passage behind the {temple}, a sound that shouldn\'t exist. It calls to you, pulls at something deep inside.',
+choices:[
+{text:'Investigate immediately',outcome:'You delve into the mystery with wide eyes. What you find changes how you see the world. The patterns were always there — you just couldn\'t see them before.',effects:{intellect:2,consciousness:2,instinct:1},years:1,aligns:['intellectual','spiritual','creative'],misaligns:['survival']},
+{text:'Tell the {mentor} and seek guidance',outcome:'You bring your discovery to the {mentor}. They study it carefully, then teach you its meaning patiently. You learn that knowledge shared is knowledge doubled.',effects:{wisdom:2,charisma:1,intellect:1},years:1,aligns:['intellectual','social'],misaligns:[]},
+{text:'Leave it alone — some things are not meant for you',outcome:'You walk away. The discovery lingers in your dreams for years — what could have been, what you might have learned. But you sleep well, and your conscience is clear.',effects:{harmony:2,instinct:1,intellect:-1},years:1,aligns:['survival','spiritual'],misaligns:['intellectual','creative']},
+]},
+
+{id:'crisis',stage:'childhood',title:'The Family Crisis',
+text:'Disaster strikes {home}. The {challenge} that has been threatening everyone finally reaches your doorstep. Your family looks to you — even though you are young, they need help.',
+choices:[
+{text:'Take charge — you will fix this',outcome:'You step forward when others step back. The burden is heavy for your age, but you carry it. When the crisis passes, you are no longer a child in their eyes.',effects:{power:2,resilience:2,compassion:1,vitality:-1},years:1,aligns:['material','survival','social'],misaligns:['spiritual']},
+{text:'Support quietly from behind',outcome:'You do the small, unseen work that holds things together. No one thanks you, no one notices, but the family survives because of what you did when no one was watching.',effects:{compassion:2,resilience:1,harmony:1,charisma:-1},years:1,aligns:['social','spiritual'],misaligns:['material']},
+{text:'Run — you can\'t face this yet',outcome:'You flee into the night, guilt burning in your chest. You survive, you grow, but the shame of running follows you. Some nights you still hear them calling.',effects:{instinct:2,resilience:-1,compassion:-2,harmony:-1},years:1,aligns:['survival'],misaligns:['social','material']},
+]},
+
+{id:'trial',stage:'adolescence',title:'The First Trial',
+text:'The community demands you prove yourself. A trial by {weapon}, a test of knowledge, a challenge of spirit — the form matters less than the stakes. Pass, and you are recognized. Fail, and you remain a child in their eyes.',
+choices:[
+{text:'Face it head-on with raw courage',outcome:'You throw yourself into the trial with everything you have. It is brutal and ugly, but you will not yield. When it ends, you stand — barely — but you stand. The community never questions you again.',effects:{power:2,resilience:2,vitality:-2,instinct:1},years:2,aligns:['material','survival'],misaligns:['intellectual']},
+{text:'Prepare meticulously — outsmart the trial',outcome:'You study, train, and plan. When the trial comes, you are ready for everything it throws at you. You pass with elegance, not force. Some say you cheated. You know you didn\'t.',effects:{intellect:2,wisdom:1,power:1,charisma:-1},years:2,aligns:['intellectual','creative'],misaligns:['material']},
+{text:'Refuse the trial — define yourself',outcome:'You stand before the community and refuse. "I will not prove myself to you," you say. The silence is deafening. Some respect you. Most don\'t. But you know who you are, and you don\'t need their approval.',effects:{consciousness:3,instinct:2,power:-2,charisma:-1,harmony:1},years:2,aligns:['spiritual','creative'],misaligns:['material','social']},
+]},
+
+{id:'forbidden',stage:'adolescence',title:'The Forbidden Path',
+text:'You discover something forbidden — a banned {scroll}, a sealed door in the {temple}, a technique that {leader} has outlawed. It calls to you with the seductive whisper of hidden power.',
+choices:[
+{text:'Pursue it in secret',outcome:'You study the forbidden knowledge in stolen moments. It changes you. Power flows through you that others fear to name. But the secret sits heavy in your chest, and you wonder if the forbidden was forbidden for good reason.',effects:{power:3,consciousness:2,compassion:-2,harmony:-2},years:2,aligns:['material','intellectual','creative'],misaligns:['social','spiritual']},
+{text:'Report it to the {mentor}',outcome:'You bring the forbidden thing to your {mentor}. They are disturbed but grateful for your honesty. They teach you why it was forbidden, and the lesson is worth more than the forbidden thing itself.',effects:{wisdom:2,charisma:1,compassion:1,power:-1,harmony:1},years:1,aligns:['social','spiritual'],misaligns:['material']},
+{text:'Destroy it — some knowledge is a poison',outcome:'You burn the {scroll}, seal the door, break the technique. The forbidden thing screams as it dies. You sleep peacefully. The world is safer, and so are you.',effects:{harmony:2,compassion:2,instinct:1,intellect:-1,power:-1},years:1,aligns:['spiritual','social','survival'],misaligns:['intellectual']},
+]},
+
+{id:'bond',stage:'adolescence',title:'The First Bond',
+text:'You meet someone who sees you — truly sees you. Not the role you play, not the expectations others hold, but the person underneath. The connection is immediate and overwhelming.',
+choices:[
+{text:'Open yourself fully — love without walls',outcome:'You let them in completely. The vulnerability is terrifying, then liberating. They know your fears, your dreams, your shame. And they stay. This bond will shape the rest of your life.',effects:{compassion:3,harmony:2,charisma:1,instinct:1},years:2,aligns:['social','spiritual'],misaligns:['material','survival']},
+{text:'Hold back — protect yourself first',outcome:'You keep part of yourself hidden. They notice. The bond forms, but with a wall between you that neither of you can name. It is safe. It is also lonely.',effects:{resilience:2,wisdom:1,compassion:-1,harmony:-1},years:2,aligns:['survival','intellectual'],misaligns:['social']},
+{text:'Let them go — this is not the time',outcome:'You walk away. The timing is wrong, the circumstances too unstable. They understand, or they don\'t. Either way, you carry the memory of what could have been like a stone in your pocket.',effects:{wisdom:2,resilience:1,instinct:2,compassion:-2,harmony:-1},years:1,aligns:['intellectual','survival'],misaligns:['social']},
+]},
+
+{id:'calling',stage:'young_adult',title:'The Calling',
+text:'A calling finds you — not the other way around. A role, a mission, a purpose appears and demands your attention. It is everything you wanted, but it will cost you the comfortable life you\'ve built.',
+choices:[
+{text:'Answer the call fully — sacrifice everything',outcome:'You abandon comfort, routine, safety. The calling demands everything and you give it. The work is harder than anything you\'ve done, but it feels like what you were made for.',effects:{power:2,consciousness:2,creativity:2,vitality:-2,wealth:-2},years:3,aligns:['spiritual','intellectual','creative'],misaligns:['material','survival']},
+{text:'Answer partially — keep one foot in safety',outcome:'You pursue the calling but maintain your safety net. Progress is slower, but the fall would be softer. Some say you lack commitment. You say you\'re being practical.',effects:{wisdom:1,power:1,creativity:1,wealth:1,harmony:1},years:2,aligns:['intellectual','survival','material'],misaligns:['spiritual']},
+{text:'Refuse — your path is elsewhere',outcome:'You turn away from the calling. It hurts, but you trust your instinct. Years later, you still wonder. But the path you chose instead has its own rewards, its own beauty.',effects:{instinct:2,resilience:2,wisdom:1,consciousness:-1},years:2,aligns:['survival','material'],misaligns:['spiritual','creative']},
+]},
+
+{id:'wandering',stage:'young_adult',title:'The Wandering Call',
+text:'The horizon pulls at you. A {journey} presents itself — far from {town}, beyond everything you know. The maps run out where your destination begins.',
+choices:[
+{text:'Go — wander into the unknown',outcome:'You leave with nothing but what you carry. The {journey} reshapes you in ways you cannot predict. You see things that change you, meet people who change you, become someone you wouldn\'t recognize.',effects:{consciousness:2,instinct:2,resilience:2,creativity:1,wealth:-2,compassion:1},years:3,aligns:['spiritual','creative','survival'],misaligns:['material']},
+{text:'Go but plan it meticulously',outcome:'You prepare for months. Routes, supplies, contacts. The {journey} is safer, but you miss some of what makes it transformative — the chaos, the uncertainty, the growth that comes from being truly lost.',effects:{intellect:2,wisdom:2,resilience:1,wealth:-1,instinct:-1},years:3,aligns:['intellectual','survival'],misaligns:['spiritual']},
+{text:'Stay — build something here instead',outcome:'You watch others leave and feel the pull, but you stay. You build, you deepen roots, you create something where you are. The horizon will always be there. This may not.',effects:{wealth:2,power:1,resilience:1,harmony:1,consciousness:-1},years:2,aligns:['material','social'],misaligns:['spiritual','creative']},
+]},
+
+{id:'rival',stage:'young_adult',title:'The Rival',
+text:'Someone emerges who matches you — in talent, in ambition, in raw potential. They are everything you are, and everything you are not. The competition between you is electric.',
+choices:[
+{text:'Outcompete them ruthlessly',outcome:'You throw everything into beating them. The rivalry sharpens you both. You win — barely — and the victory tastes like ash. They leave, diminished. You remain, wondering if winning was worth the cost.',effects:{power:3,intellect:2,charisma:1,compassion:-3,harmony:-2},years:2,aligns:['material'],misaligns:['social','spiritual']},
+{text:'Join forces — combine your strengths',outcome:'You approach them not as an enemy but as an equal. Together, you are more than either of you could be alone. The work you create together defines both your legacies.',effects:{creativity:2,charisma:2,intellect:2,power:1,compassion:1},years:2,aligns:['creative','intellectual','social'],misaligns:['material']},
+{text:'Let them win — learn from their victory',outcome:'You step back and watch them succeed. You study their methods, their mindset, their path. When the time is right, you apply what you learned. Their victory becomes your education.',effects:{wisdom:3,intellect:1,instinct:1,power:-1,resilience:1},years:2,aligns:['intellectual','spiritual'],misaligns:['material']},
+]},
+
+{id:'glimpse',stage:'adult',title:'The Spiritual Glimpse',
+text:'In a moment of stillness, the veil parts. You see beyond — the pattern, the connectedness, the vast cosmic architecture. It lasts only seconds, but it changes everything. You can never unsee it.',
+choices:[
+{text:'Chase the vision — pursue it relentlessly',outcome:'You dedicate yourself to recapturing the glimpse. Meditation, study, practice — everything bends toward the veil. You catch fragments, echoes. Your body weakens but your consciousness expands.',effects:{consciousness:4,wisdom:2,instinct:1,vitality:-3,harmony:1},years:3,aligns:['spiritual'],misaligns:['material','survival']},
+{text:'Integrate it — let it inform your daily life',outcome:'You don\'t chase the vision. You let it settle into you, become part of how you see the world. It doesn\'t make you a mystic — it makes you more present, more aware, more grateful.',effects:{consciousness:2,harmony:3,compassion:2,wisdom:1},years:2,aligns:['spiritual','social'],misaligns:[]},
+{text:'Share it — try to help others see',outcome:'You speak of what you saw. Some listen. Some think you\'ve lost your mind. The ones who understand become your closest circle. The ones who don\'t create distance.',effects:{consciousness:1,charisma:2,compassion:2,wisdom:1,harmony:-1},years:2,aligns:['social','spiritual'],misaligns:['material']},
+]},
+
+{id:'temptation',stage:'adult',title:'The Temptation',
+text:'An opportunity appears — something you\'ve always wanted. Power, wealth, recognition. The path to it is clear. The cost is someone else\'s suffering. Not anyone you know. Just... someone.',
+choices:[
+{text:'Take it — the cost is not yours to bear',outcome:'You take what you want. The gain is real, immediate, satisfying. At night, you think about the stranger who paid for your success. You tell yourself they would have done the same.',effects:{power:3,wealth:3,compassion:-4,harmony:-3},years:1,aligns:['material'],misaligns:['social','spiritual']},
+{text:'Refuse — some prices are too high',outcome:'You walk away. The opportunity passes. You will never know what it would have felt like. But you sleep well, and when you look in the mirror, you recognize yourself.',effects:{compassion:3,harmony:3,wisdom:2,power:-1},years:1,aligns:['spiritual','social'],misaligns:['material']},
+{text:'Find a third way — get what you want without the cost',outcome:'You spend months finding an alternative path. It\'s harder, slower, less certain. But eventually, you find a way that doesn\'t require anyone\'s suffering. The victory is sweeter for it.',effects:{creativity:3,intellect:2,wisdom:2,power:2,wealth:1},years:2,aligns:['intellectual','creative','material'],misaligns:['survival']},
+]},
+
+{id:'sickness',stage:'adult',title:'The Sickness',
+text:'Your body fails you. The sickness comes without warning and settles in like it owns the place. Healers gather, remedies are tried, but the outcome is uncertain. You face your own mortality.',
+choices:[
+{text:'Fight — rage against the dying',outcome:'You fight with everything you have. Every resource, every healer, every treatment. The sickness breaks, but it takes years from you. You survive changed — harder, more fragile, more alive.',effects:{resilience:3,vitality:1,will:2,harmony:-1},years:-5,aligns:['survival','material'],misaligns:['spiritual']},
+{text:'Accept — make peace with what comes',outcome:'You stop fighting and start accepting. The sickness remains, but the fear evaporates. In your weakness, you find a strength you didn\'t know existed — the strength to face the end with grace.',effects:{harmony:3,consciousness:2,compassion:1,vitality:-2},years:-3,aligns:['spiritual'],misaligns:['survival','material']},
+{text:'Seek a cure — unconventional and dangerous',outcome:'You search for a cure that others call impossible. The path takes you to strange places, strange people, strange remedies. You find something. It might work. It might kill you faster.',effects:{intellect:2,instinct:2,creativity:1,vitality:-3,resilience:1},years:-3,aligns:['intellectual','creative'],misaligns:['social']},
+]},
+
+{id:'war_scenario',stage:'adult',title:'The War',
+text:'War comes to {town}. The {leader} calls all who can fight. Your {weapon} waits for you. The enemy approaches, and there is no neutral ground.',
+choices:[
+{text:'Fight — defend your people',outcome:'You take up the {weapon}. Combat is nothing like you imagined — louder, bloodier, more intimate. You survive. Others don\'t. The memory of what you did and what you saw will never leave.',effects:{power:2,resilience:2,compassion:-1,vitality:-3,instinct:2},years:-4,aligns:['material','survival'],misaligns:['spiritual']},
+{text:'Mediate — seek a peaceful resolution',outcome:'You walk between the lines, speaking to both sides. It\'s the most dangerous thing you\'ve ever done. But somehow, you find common ground. The war doesn\'t end, but fewer people die because of what you risked.',effects:{charisma:3,wisdom:2,compassion:2,instinct:1,vitality:-1},years:1,aligns:['social','spiritual'],misaligns:['material']},
+{text:'Flee — take your loved ones and run',outcome:'You gather those you love and run. The shame is real, but they are alive. You rebuild elsewhere. The war eventually ends. You never go back.',effects:{instinct:2,resilience:1,compassion:1,power:-2,harmony:-1,wealth:-2},years:-1,aligns:['survival'],misaligns:['material','social']},
+]},
+
+{id:'great_work',stage:'adult',title:'The Great Work',
+text:'An idea takes hold of you — something you must create, must build, must bring into being. It will take years. It will demand everything. But if you complete it, it will change the world.',
+choices:[
+{text:'Commit fully — sacrifice everything for the work',outcome:'You pour yourself into the work. Relationships strain, health suffers, finances drain. But the work grows, takes shape, becomes real. When it\'s done, you are empty and magnificent.',effects:{creativity:4,intellect:3,power:2,vitality:-3,wealth:-3,compassion:-1},years:4,aligns:['creative','intellectual'],misaligns:['survival','social','material']},
+{text:'Balance the work with life',outcome:'You pursue the work but maintain your relationships, your health, your sanity. Progress is slower, but you remain whole. The work takes longer but it doesn\'t consume you.',effects:{creativity:2,intellect:2,harmony:2,compassion:1,wealth:-1},years:3,aligns:['intellectual','social','spiritual'],misaligns:['material']},
+{text:'Abandon it — the cost is too high',outcome:'You walk away from the work. The idea lingers, knocking at night, but you choose life over legacy. Years later, someone else creates something similar. You watch from a distance and wonder.',effects:{harmony:2,resilience:2,compassion:1,creativity:-1,wealth:1},years:2,aligns:['survival','social','material'],misaligns:['creative','intellectual']},
+]},
+
+{id:'betrayal',stage:'adult',title:'The Betrayal',
+text:'Someone you trusted — deeply, completely — betrays you. The wound is not just practical, it\'s existential. Everything you believed about loyalty, about love, about people is called into question.',
+choices:[
+{text:'Forgive — release the debt',outcome:'You look at the person who hurt you and choose to let go. Not because they deserve it, but because you deserve peace. The forgiveness costs you nothing and everything. You are lighter and emptier.',effects:{harmony:3,compassion:3,wisdom:2,power:-1,instinct:1},years:2,aligns:['spiritual','social'],misaligns:['material']},
+{text:'Seek revenge — make them pay',outcome:'You dedicate yourself to retribution. The planning takes over your life. When it\'s done, the satisfaction is real but brief. Then the emptiness returns, deeper than before.',effects:{power:3,intellect:2,compassion:-3,harmony:-3,charisma:-1},years:2,aligns:['material'],misaligns:['social','spiritual']},
+{text:'Cut them out — move on without closure',outcome:'You don\'t forgive or punish. You simply remove them from your life like a surgeon removes a tumor. Clean, decisive, final. You move on. The scar remains but it doesn\'t control you.',effects:{resilience:3,instinct:2,wisdom:1,compassion:-1,harmony:1},years:1,aligns:['survival','intellectual'],misaligns:['social']},
+]},
+
+{id:'loss',stage:'adult',title:'The Loss',
+text:'You lose someone irreplaceable. Not to betrayal — to time, to fate, to the merciless arithmetic of mortality. The grief is a physical weight. The world continues as if nothing happened. You cannot.',
+choices:[
+{text:'Dive into the grief — feel it all',outcome:'You don\'t run from the pain. You sit in it, drown in it, let it wash through every part of you. It takes months. But when you emerge, you understand something about love that only loss can teach.',effects:{consciousness:3,compassion:3,wisdom:2,harmony:1,vitality:-2},years:2,aligns:['spiritual','social'],misaligns:['material','survival']},
+{text:'Honor them through action',outcome:'You channel the grief into something. A foundation, a work of art, a promise kept. The loss doesn\'t heal, but it transforms into purpose. You carry them forward in everything you build.',effects:{creativity:2,power:2,compassion:2,wisdom:1,wealth:-1},years:2,aligns:['creative','intellectual','social'],misaligns:['survival']},
+{text:'Numb it — move on as fast as possible',outcome:'You bury the grief under activity, noise, distraction. It works, for a while. But grief is patient. It waits. And years later, it finds you in a quiet moment and demands its due.',effects:{resilience:2,instinct:1,compassion:-2,harmony:-2,wealth:1},years:1,aligns:['survival','material'],misaligns:['spiritual','social']},
+]},
+
+{id:'legacy_q',stage:'elder',title:'The Legacy Question',
+text:'You are old now. The end approaches, not as a threat but as a fact. People ask what you leave behind. What will outlast you? What will they remember?',
+choices:[
+{text:'Dedicate remaining time to teaching',outcome:'You gather students and pour everything you\'ve learned into them. The knowledge outlives you, carried in their minds, passed to their students. This is your immortality.',effects:{wisdom:3,compassion:2,charisma:2,intellect:1,vitality:-1},years:3,aligns:['intellectual','social','spiritual'],misaligns:['material']},
+{text:'Build something permanent',outcome:'You spend your final energy creating something that will stand — a building, an institution, a system. Something physical that will outlast you by centuries.',effects:{power:2,creativity:2,wealth:-2,resilience:1,harmony:1},years:2,aligns:['material','creative'],misaligns:['social']},
+{text:'Simply live — let legacy take care of itself',outcome:'You spend your remaining days doing what you love with who you love. No grand project, no master plan. Just days, well-lived, one after another, until there are no more.',effects:{harmony:4,compassion:3,vitality:1,instinct:1,wisdom:1},years:3,aligns:['spiritual','social'],misaligns:['material','intellectual']},
+]},
+
+{id:'reckoning',stage:'elder',title:'The Reckoning',
+text:'In the quiet of your later years, the past comes to visit. Choices you made, paths you didn\'t take, people you hurt. They sit with you in the silence and demand to be seen.',
+choices:[
+{text:'Face them — account for everything',outcome:'You sit with every choice, every failure, every moment of cowardice and courage. You hurt yourself with honesty. But when it\'s done, you are clean. The weight lifts.',effects:{consciousness:3,wisdom:3,harmony:3,compassion:2},years:2,aligns:['spiritual','intellectual'],misaligns:['material']},
+{text:'Make amends — reach out to those you wronged',outcome:'You track down the people you hurt and apologize. Some forgive you. Some don\'t. Some are dead. But you try, and the trying is the point.',effects:{compassion:3,charisma:2,harmony:2,wisdom:1,instinct:1},years:2,aligns:['social','spiritual'],misaligns:['survival']},
+{text:'Let the past be past',outcome:'You decline the reckoning. What\'s done is done. You focus on the present, the remaining light, the warmth still left. The past can keep its ghosts.',effects:{resilience:2,harmony:2,instinct:2,wisdom:-1},years:1,aligns:['survival'],misaligns:['intellectual']},
+]},
+
+{id:'final_choice',stage:'elder',title:'The Final Choice',
+text:'The end is here. You feel it in your bones, in the fading light, in the way the world seems to be letting go of you. One last choice remains: how will you meet it?',
+choices:[
+{text:'Face death with peace and gratitude',outcome:'You close your eyes and feel gratitude — for every moment, every joy, every pain that taught you something. The light fades gently. You let it go.',effects:{harmony:4,consciousness:3,compassion:2,wisdom:2},years:0,aligns:['spiritual','social'],misaligns:['material']},
+{text:'Rage — fight the end with everything',outcome:'You refuse to go quietly. You fight, you claw, you burn with the will to live. The end comes anyway, but it has to work for it. You leave this world like a fire.',effects:{power:3,resilience:3,vitality:-1,harmony:-2,instinct:2},years:-1,aligns:['material','survival'],misaligns:['spiritual']},
+{text:'Transcend — become one with the pattern',outcome:'In the final moments, you see it all — the cycle, the pattern, the vast cosmic architecture. You don\'t fight. You don\'t surrender. You expand. You become part of something infinite.',effects:{consciousness:5,harmony:4,wisdom:3,instinct:2},years:0,aligns:['spiritual','intellectual','creative'],misaligns:['material']},
+]},
+];
+
+// ========== STATE ==========
+let state={
+screen:'gate',lives:0,
+evolution:{consciousness:0,wisdom:0,power:0,compassion:0,creativity:0,resilience:0,vitality:0,wealth:0,charisma:0,intellect:0,instinct:0,harmony:0},
+pendingPoints:0,currentLife:null,pastLives:[],
+// creation state
+cs:{goal:null,being:null,lifestyle:null,era:null,region:null,family:null,challenge:null,name:'',avatar:{body:null,head:null,eyes:null,markings:null,attire:null,distinguishing:null},mod:null},
+};
+
+// ========== HELPERS ==========
+function fill(str,ctx){return str.replace(/\{(\w+)\}/g,(m,k)=>ctx[k]!==undefined?ctx[k]:m);}
+function pick(a){return a[Math.floor(Math.random()*a.length)];}
+function totalEvo(){return Object.values(state.evolution).reduce((a,b)=>a+b,0);}
+function evoStatLvl(s){return state.evolution[s]||0;}
+
+function getFlavor(){
+const f=FLAVOR[state.cs.era]||FLAVOR.ancient;
+return{age:state.currentLife?state.currentLife.age:0,mentor:f.mentor,town:f.town,journey:f.journey,weapon:f.weapon,temple:f.temple,scroll:f.scroll,spirit:f.spirit,leader:f.leader,home:f.home,challenge:CHALLENGES.find(c=>c.id===state.cs.challenge)?.name||'hardship'};
+}
+
+function render(html){document.getElementById('root').innerHTML='<div class="fade">'+html+'</div>';}
+
+// ========== SCREENS ==========
+function showGate(){
+const evo=totalEvo();
+render(`
+<div class="text-center pt-8">
+<div class="text-4xl mb-3" style="letter-spacing:-0.03em;font-weight:800">The Eternal Cycle</div>
+<p class="text-sm text-muted-foreground mb-1 leading-relaxed">${evo>0?'You have lived '+state.lives+' '+(['zero','one','two','three','four','five','six','seven','eight','nine','ten'][state.lives]||state.lives)+' lifetimes. Your evolution: '+evo+'.':'You stand at the threshold. The cycle of rebirth stretches before you — infinite possibilities, infinite lives, infinite chances to become.'}</p>
+${evo>0?`<div class="grid grid-cols-6 gap-1 max-w-xs mx-auto my-4">${STATS.map(s=>`<div class="text-center px-1 py-1 rounded bg-muted"><div class="text-[9px] font-bold text-muted-foreground">${s.abbr}</div><div class="text-xs font-bold">${state.evolution[s.id]||0}</div></div>`).join('')}</div>`:''}
+</div>
+<div class="mt-8 space-y-2">
+<button onclick="startCreation()" class="w-full py-3.5 rounded-xl bg-primary text-primary-foreground font-semibold text-sm transition-all hover:opacity-90">Enter the Cycle</button>
+<button onclick="declineGate()" class="w-full py-3.5 rounded-xl bg-secondary text-secondary-foreground font-semibold text-sm transition-all hover:opacity-90">Decline — Step Away</button>
+</div>`);
+}
+
+function declineGate(){
+render(`<div class="text-center pt-12"><p class="text-lg font-semibold mb-2">The cycle continues without you.</p><p class="text-sm text-muted-foreground">Perhaps another time. The door never closes.</p><button onclick="showGate()" class="mt-6 px-6 py-2.5 rounded-lg bg-primary text-primary-foreground text-sm font-semibold" onclick="showGate()">Return to the Threshold</button></div>`);
+}
+
+function showEvolution(){
+const evo=totalEvo();
+if(state.pendingPoints>0){
+render(`
+<div class="pt-6">
+<div class="text-lg font-bold text-center mb-1">Evolution</div>
+<p class="text-sm text-muted-foreground text-center mb-6">Your soul has grown. Distribute ${state.pendingPoints} evolution point${state.pendingPoints>1?'s':''} across your dimensions.</p>
+<div class="grid grid-cols-2 gap-2">
+${STATS.map(s=>`<button onclick="allocEvo('${s.id}')" class="p-3 rounded-xl border bg-card text-card-foreground hover:border-primary transition-all text-left">
+<div class="flex justify-between items-center">
+<span class="text-sm font-semibold">${s.name}</span>
+<span class="text-lg font-bold text-primary">${state.evolution[s.id]||0}</span>
+</div>
+<p class="text-[11px] text-muted-foreground mt-1">${s.desc}</p>
+</button>`).join('')}
+</div>
+</div>`);
+}else{
+render(`<div class="text-center pt-8"><p class="text-sm text-muted-foreground mb-6">Your evolution is set. Proceed to choose your next life.</p><button onclick="showGoal()" class="px-8 py-3 rounded-xl bg-primary text-primary-foreground font-semibold text-sm">Choose Your Goal</button></div>`);
+}
+}
+
+function allocEvo(stat){
+state.evolution[stat]=(state.evolution[stat]||0)+1;
+state.pendingPoints--;
+showEvolution();
+}
+
+function showGoal(){
+const evo=totalEvo();
+render(`
+<div class="pt-4">
+<div class="text-lg font-bold text-center mb-1">Choose Your Life's Goal</div>
+<p class="text-xs text-muted-foreground text-center mb-5">This purpose will guide — or haunt — your entire life. Choices can align with or diverge from it.</p>
+<div class="space-y-1.5">
+${GOALS.map(g=>`<button onclick="selectGoal('${g.id}')" class="w-full p-3 rounded-xl border bg-card text-card-foreground hover:border-primary transition-all text-left ${state.cs.goal===g.id?'border-primary bg-primary text-primary-foreground':''}">
+<div class="text-sm font-semibold">${g.name}</div>
+<div class="text-[11px] ${state.cs.goal===g.id?'opacity-80':'text-muted-foreground'} mt-0.5">${g.desc}</div>
+</button>`).join('')}
+</div>
+<div class="mt-5"><button onclick="showBeing()" class="w-full py-3 rounded-xl bg-primary text-primary-foreground font-semibold text-sm" ${state.cs.goal?'':'disabled'}>Continue</button></div>
+</div>`);
+}
+
+function selectGoal(g){state.cs.goal=g;showGoal();}
+
+function showBeing(){
+const evo=totalEvo();
+render(`
+<div class="pt-4">
+<div class="text-lg font-bold text-center mb-1">Choose Your Being</div>
+<p class="text-xs text-muted-foreground text-center mb-5">What form will your consciousness take in this life?</p>
+<div class="grid grid-cols-1 gap-1.5">
+${BEINGS.map(b=>{
+const locked=b.req&&evo<(b.req);
+return`<button onclick="${locked?'':`selectBeing('${b.id}')`}" class="w-full p-3 rounded-xl border bg-card text-card-foreground transition-all text-left ${state.cs.being===b.id?'border-primary':''} ${locked?'opacity-35 cursor-not-allowed':''}">
+<div class="flex justify-between items-start">
+<div><div class="text-sm font-semibold">${b.name}</div><div class="text-[11px] text-muted-foreground mt-0.5">${b.desc}</div></div>
+${locked?`<span class="text-[10px] text-muted-foreground">Evo ${b.req}+</span>`:''}
+</div>
+${Object.keys(b.mods).length?`<div class="flex gap-1 mt-1.5 flex-wrap">${Object.entries(b.mods).map(([k,v])=>`<span class="text-[10px] px-1.5 py-0.5 rounded ${v>0?'text-primary':'text-destructive'} bg-muted">${v>0?'+':''}${v} ${STATS.find(s=>s.id===k).abbr}</span>`).join('')}</div>`:''}
+</button>`;
+}).join('')}
+</div>
+<div class="mt-5 flex gap-2">
+<button onclick="showGoal()" class="px-4 py-2.5 rounded-xl bg-secondary text-secondary-foreground text-sm font-semibold">Back</button>
+<button onclick="showLifestyle()" class="flex-1 py-2.5 rounded-xl bg-primary text-primary-foreground font-semibold text-sm" ${state.cs.being?'':'disabled'}>Continue</button>
+</div>
+</div>`);
+}
+
+function selectBeing(b){state.cs.being=b;showBeing();}
+
+function showLifestyle(){
+const evo=totalEvo();
+render(`
+<div class="pt-4">
+<div class="text-lg font-bold text-center mb-1">Choose Your Path</div>
+<p class="text-xs text-muted-foreground text-center mb-5">What discipline will define your approach to life?</p>
+<div class="grid grid-cols-1 gap-1.5">
+${LIFESTYLES.map(l=>{
+const locked=l.req&&evo<(l.req);
+return`<button onclick="${locked?'':`selectLifestyle('${l.id}')`}" class="w-full p-3 rounded-xl border bg-card text-card-foreground transition-all text-left ${state.cs.lifestyle===l.id?'border-primary':''} ${locked?'opacity-35 cursor-not-allowed':''}">
+<div class="flex justify-between items-start">
+<div><div class="text-sm font-semibold">${l.name}</div><div class="text-[11px] text-muted-foreground mt-0.5">${l.desc}</div></div>
+${locked?`<span class="text-[10px] text-muted-foreground">Evo ${l.req}+</span>`:''}
+</div>
+<div class="flex gap-1 mt-1.5 flex-wrap">${Object.entries(l.mods).map(([k,v])=>`<span class="text-[10px] px-1.5 py-0.5 rounded text-primary bg-muted">+${v} ${STATS.find(s=>s.id===k).abbr}</span>`).join('')}</div>
+</button>`;
+}).join('')}
+</div>
+<div class="mt-5 flex gap-2">
+<button onclick="showBeing()" class="px-4 py-2.5 rounded-xl bg-secondary text-secondary-foreground text-sm font-semibold">Back</button>
+<button onclick="showWorld()" class="flex-1 py-2.5 rounded-xl bg-primary text-primary-foreground font-semibold text-sm" ${state.cs.lifestyle?'':'disabled'}>Continue</button>
+</div>
+</div>`);
+}
+
+function selectLifestyle(l){state.cs.lifestyle=l;showLifestyle();}
+
+function showWorld(){
+render(`
+<div class="pt-4">
+<div class="text-lg font-bold text-center mb-1">Choose Your World</div>
+<p class="text-xs text-muted-foreground text-center mb-4">When and where will you be born?</p>
+<div class="text-xs font-bold text-muted-foreground uppercase tracking-wider mt-3 mb-1.5">Era</div>
+<div class="flex flex-wrap gap-1.5">
+${ERAS.map(e=>`<button onclick="selectEra('${e.id}')" class="px-3 py-1.5 rounded-full border text-xs font-medium transition-all ${state.cs.era===e.id?'bg-primary text-primary-foreground border-primary':'bg-card text-card-foreground'}">${e.name}</button>`).join('')}
+</div>
+${state.cs.era?`<p class="text-xs text-muted-foreground mt-2">${ERAS.find(e=>e.id===state.cs.era).desc}</p>`:''}
+${state.cs.era?`<div class="text-xs font-bold text-muted-foreground uppercase tracking-wider mt-4 mb-1.5">Region</div>
+<div class="flex flex-wrap gap-1.5">
+${REGIONS[state.cs.era].map(r=>`<button onclick="selectRegion('${r}')" class="px-3 py-1.5 rounded-full border text-xs font-medium transition-all ${state.cs.region===r?'bg-primary text-primary-foreground border-primary':'bg-card text-card-foreground'}">${r}</button>`).join('')}
+</div>`:''}
+<div class="mt-5 flex gap-2">
+<button onclick="showLifestyle()" class="px-4 py-2.5 rounded-xl bg-secondary text-secondary-foreground text-sm font-semibold">Back</button>
+<button onclick="showCircumstance()" class="flex-1 py-2.5 rounded-xl bg-primary text-primary-foreground font-semibold text-sm" ${state.cs.region?'':'disabled'}>Continue</button>
+</div>
+</div>`);
+}
+
+function selectEra(e){state.cs.era=e;state.cs.region=null;showWorld();}
+function selectRegion(r){state.cs.region=r;showWorld();}
+
+function showCircumstance(){
+render(`
+<div class="pt-4">
+<div class="text-lg font-bold text-center mb-1">Choose Your Circumstances</div>
+<div class="text-xs font-bold text-muted-foreground uppercase tracking-wider mt-3 mb-1.5">Family Background</div>
+<div class="space-y-1">
+${FAMILIES.map(f=>`<button onclick="selectFamily('${f.id}')" class="w-full p-2.5 rounded-lg border bg-card text-card-foreground transition-all text-left ${state.cs.family===f.id?'border-primary':''}">
+<div class="flex justify-between items-center"><span class="text-sm font-medium">${f.name}</span><span class="text-xs ${f.years>0?'text-primary':f.years<0?'text-destructive':'text-muted-foreground'}">${f.years>0?'+':''}${f.years} yrs</span></div>
+<div class="text-[11px] text-muted-foreground">${f.desc}</div>
+</button>`).join('')}
+</div>
+<div class="text-xs font-bold text-muted-foreground uppercase tracking-wider mt-4 mb-1.5">Challenge</div>
+<div class="space-y-1">
+${CHALLENGES.map(c=>`<button onclick="selectChallenge('${c.id}')" class="w-full p-2.5 rounded-lg border bg-card text-card-foreground transition-all text-left ${state.cs.challenge===c.id?'border-primary':''}">
+<div class="flex justify-between items-center"><span class="text-sm font-medium">${c.name}</span><span class="text-xs ${c.years>0?'text-primary':c.years<0?'text-destructive':'text-muted-foreground'}">${c.years>0?'+':''}${c.years} yrs</span></div>
+<div class="text-[11px] text-muted-foreground">${c.desc}</div>
+</button>`).join('')}
+</div>
+<div class="mt-5 flex gap-2">
+<button onclick="showWorld()" class="px-4 py-2.5 rounded-xl bg-secondary text-secondary-foreground text-sm font-semibold">Back</button>
+<button onclick="showAvatar()" class="flex-1 py-2.5 rounded-xl bg-primary text-primary-foreground font-semibold text-sm" ${state.cs.family&&state.cs.challenge?'':'disabled'}>Continue</button>
+</div>
+</div>`);
+}
+
+function selectFamily(f){state.cs.family=f;showCircumstance();}
+function selectChallenge(c){state.cs.challenge=c;showCircumstance();}
+
+function showAvatar(){
+const opts=AVATAR_OPTS;
+render(`
+<div class="pt-4">
+<div class="text-lg font-bold text-center mb-1">Create Your Avatar</div>
+<p class="text-xs text-muted-foreground text-center mb-4">Define how you appear in this life.</p>
+<input type="text" id="avatarName" placeholder="Enter your name..." value="${state.cs.name||''}" class="w-full px-3 py-2.5 rounded-lg border bg-card text-card-foreground text-sm mb-4" oninput="state.cs.name=this.value">
+${Object.entries(opts).map(([key,values])=>`
+<div class="text-xs font-bold text-muted-foreground uppercase tracking-wider mt-3 mb-1.5 capitalize">${key.replace(/_/g,' ')}</div>
+<div class="flex flex-wrap gap-1.5">
+${values.map(v=>`<button onclick="selectAvatar('${key}','${v}')" class="px-2.5 py-1 rounded-full border text-xs font-medium transition-all ${state.cs.avatar[key]===v?'bg-primary text-primary-foreground border-primary':'bg-card text-card-foreground'}">${v}</button>`).join('')}
+</div>`).join('')}
+<div class="mt-5 flex gap-2">
+<button onclick="showCircumstance()" class="px-4 py-2.5 rounded-xl bg-secondary text-secondary-foreground text-sm font-semibold">Back</button>
+<button onclick="showMods()" class="flex-1 py-2.5 rounded-xl bg-primary text-primary-foreground font-semibold text-sm">Continue</button>
+</div>
+</div>`);
+}
+
+function selectAvatar(key,val){state.cs.avatar[key]=val;showAvatar();}
+
+function showMods(){
+const being=state.cs.being;
+const available=MODS.filter(m=>{
+if(m.beings==='all')return true;
+return m.beings.includes(being);
+});
+render(`
+<div class="pt-4">
+<div class="text-lg font-bold text-center mb-1">Modifications</div>
+<p class="text-xs text-muted-foreground text-center mb-5">${being==='human'?'Cybernetic and synthetic enhancements available in your era.':BEINGS.find(b=>b.id===being).name+' enhancements and augmentations.'}</p>
+<div class="space-y-1.5">
+${available.map(m=>`<button onclick="selectMod('${m.id}')" class="w-full p-3 rounded-xl border bg-card text-card-foreground transition-all text-left ${state.cs.mod===m.id?'border-primary':''}">
+<div class="flex justify-between items-start">
+<div><div class="text-sm font-semibold">${m.name}</div><div class="text-[11px] text-muted-foreground mt-0.5">${m.desc}</div></div>
+</div>
+${Object.keys(m.stats).length?`<div class="flex gap-1 mt-1.5 flex-wrap">${Object.entries(m.stats).map(([k,v])=>`<span class="text-[10px] px-1.5 py-0.5 rounded ${v>0?'text-primary':'text-destructive'} bg-muted">${v>0?'+':''}${v} ${STATS.find(s=>s.id===k).abbr}</span>`).join('')}</div>`:''}
+</button>`).join('')}
+</div>
+<div class="mt-5 flex gap-2">
+<button onclick="showAvatar()" class="px-4 py-2.5 rounded-xl bg-secondary text-secondary-foreground text-sm font-semibold">Back</button>
+<button onclick="showPowers()" class="flex-1 py-2.5 rounded-xl bg-primary text-primary-foreground font-semibold text-sm">Continue</button>
+</div>
+</div>`);
+}
+
+function selectMod(m){state.cs.mod=m;showMods();}
+
+function showPowers(){
+const evo=totalEvo();
+const unlocked=SUPERPOWERS.filter(p=>evo>=p.reqEvo&&evoStatLvl(p.reqStat)>=p.reqStatLvl);
+const locked=SUPERPOWERS.filter(p=>!(evo>=p.reqEvo&&evoStatLvl(p.reqStat)>=p.reqStatLvl));
+render(`
+<div class="pt-4">
+<div class="text-lg font-bold text-center mb-1">Superpowers</div>
+<p class="text-xs text-muted-foreground text-center mb-5">${unlocked.length>0?'Your evolution has unlocked these powers. They can be activated during your life.':'No powers unlocked yet. Increase your evolution across lives to gain powers.'}</p>
+${unlocked.length>0?`<div class="space-y-1.5 mb-4">
+${unlocked.map(p=>`<div class="p-3 rounded-xl border bg-card text-card-foreground">
+<div class="flex items-center justify-between">
+<span class="text-sm font-semibold text-primary">${p.name}</span>
+<span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-primary text-primary-foreground">T${p.tier}</span>
+</div>
+<p class="text-[11px] text-muted-foreground mt-1">${p.desc}</p>
+<p class="text-[10px] text-muted-foreground mt-1">Uses: ${p.uses} per life · ${p.type}</p>
+</div>`).join('')}
+</div>`:''}
+${locked.length>0?`<div class="text-xs font-bold text-muted-foreground uppercase tracking-wider mt-4 mb-1.5">Locked</div>
+<div class="space-y-1">
+${locked.slice(0,6).map(p=>`<div class="p-2.5 rounded-lg border border-dashed opacity-40">
+<div class="text-sm font-medium">${p.name} <span class="text-[10px] text-muted-foreground">T${p.tier}</span></div>
+<div class="text-[10px] text-muted-foreground">Requires Evo ${p.reqEvo}+ & ${STATS.find(s=>s.id===p.reqStat).name} ${p.reqStatLvl}+</div>
+</div>`).join('')}
+</div>`:''}
+<div class="mt-5 flex gap-2">
+<button onclick="showMods()" class="px-4 py-2.5 rounded-xl bg-secondary text-secondary-foreground text-sm font-semibold">Back</button>
+<button onclick="startLife()" class="flex-1 py-2.5 rounded-xl bg-primary text-primary-foreground font-semibold text-sm">Begin Life ${state.lives+1}</button>
+</div>
+</div>`);
+}
+
+// ========== GAME LOGIC ==========
+function startLife(){
+const evo=totalEvo();
+// Initialize life stats
+const stats={};
+STATS.forEach(s=>{stats[s.id]=0;});
+// Apply being mods
+const being=BEINGS.find(b=>b.id===state.cs.being);
+Object.entries(being.mods).forEach(([k,v])=>{stats[k]=(stats[k]||0)+v;});
+// Apply lifestyle mods
+const lifestyle=LIFESTYLES.find(l=>l.id===state.cs.lifestyle);
+Object.entries(lifestyle.mods).forEach(([k,v])=>{stats[k]=(stats[k]||0)+v;});
+// Apply family mods
+const family=FAMILIES.find(f=>f.id===state.cs.family);
+Object.entries(family.mods).forEach(([k,v])=>{stats[k]=(stats[k]||0)+v;});
+// Apply challenge mods
+const challenge=CHALLENGES.find(c=>c.id===state.cs.challenge);
+Object.entries(challenge.mods).forEach(([k,v])=>{stats[k]=(stats[k]||0)+v;});
+// Apply mod
+if(state.cs.mod&&state.cs.mod!=='none'){
+const mod=MODS.find(m=>m.id===state.cs.mod);
+Object.entries(mod.stats).forEach(([k,v])=>{stats[k]=(stats[k]||0)+v;});
+}
+// Apply evolution bonuses (each evolution point adds +1 to its stat)
+Object.entries(state.evolution).forEach(([k,v])=>{stats[k]=(stats[k]||0)+Math.floor(v/2);});
+
+// Calculate time pool
+let timePool=50+family.years+challenge.years;
+if(stats.vitality>0)timePool+=Math.floor(stats.vitality/2);
+if(stats.vitality<0)timePool+=Math.floor(stats.vitality/2);
+
+state.currentLife={
+goal:state.cs.goal,being:state.cs.being,lifestyle:state.cs.lifestyle,
+era:state.cs.era,region:state.cs.region,family:state.cs.family,
+challenge:state.cs.challenge,name:state.cs.name||'Unnamed',
+avatar:state.cs.avatar,mod:state.cs.mod,
+age:0,timePool:timePool,stats:stats,
+usedScenarios:[],currentScenario:null,choiceMade:false,choiceIndex:-1,
+goalAlignment:50,lastEffects:{},lastYears:0,lastAlign:false,lastMisalign:false,
+powersUsed:{},foresightActive:false,ironWillActive:false,creativeFlowActive:false,
+powerSurgeActive:false,cosmicSightActive:false,wealthManifestActive:false,
+eternalFlame:false,transcended:false,lastChoice:null,
+};
+state.lives++;
+nextScenario();
+}
+
+function nextScenario(){
+const life=state.currentLife;
+if(life.age>=life.timePool&&!life.eternalFlame){endLife();return;}
+let stage='childhood';
+if(life.age>=12)stage='adolescence';
+if(life.age>=18)stage='young_adult';
+if(life.age>=30)stage='adult';
+if(life.age>=50)stage='elder';
+let avail=SCENARIOS.filter(s=>s.stage===stage&&!life.usedScenarios.includes(s.id));
+if(avail.length===0)avail=SCENARIOS.filter(s=>!life.usedScenarios.includes(s.id));
+if(avail.length===0){life.usedScenarios=[];avail=SCENARIOS.filter(s=>s.stage===stage);if(avail.length===0)avail=SCENARIOS;}
+life.currentScenario=pick(avail);
+life.choiceMade=false;life.choiceIndex=-1;
+renderGame();
+}
+
+function makeChoice(idx){
+const life=state.currentLife;
+const scen=life.currentScenario;
+const choice=scen.choices[idx];
+const goalCat=GOALS.find(g=>g.id===life.goal).cat;
+let effects={...choice.effects};
+// Power modifiers
+if(life.ironWillActive){Object.keys(effects).forEach(k=>{if(effects[k]<0)effects[k]=0;});life.ironWillActive=false;}
+if(life.creativeFlowActive){Object.keys(effects).forEach(k=>{if(effects[k]>0)effects[k]*=2;});life.creativeFlowActive=false;}
+if(life.powerSurgeActive){STATS.forEach(s=>{effects[s.id]=(effects[s.id]||0)+2;});life.timePool+=3;life.powerSurgeActive=false;}
+if(life.wealthManifestActive){effects.wealth=(effects.wealth||0)+3;STATS.forEach(s=>{if(s.id!=='wealth')effects[s.id]=(effects[s.id]||0)+1;});}
+
+Object.entries(effects).forEach(([k,v])=>{life.stats[k]=(life.stats[k]||0)+v;});
+let yearsChange=choice.years;
+if(life.eternalFlame&&yearsChange<0)yearsChange=0;
+life.timePool+=yearsChange;
+const yearsAdvance=3+Math.floor(Math.random()*3);
+life.age+=yearsAdvance;
+life.lastYears=yearsChange;life.lastEffects=effects;
+
+const aligned=choice.aligns.includes(goalCat);
+const misaligned=choice.misaligns.includes(goalCat);
+if(aligned)life.goalAlignment=Math.min(100,life.goalAlignment+8);
+else if(misaligned)life.goalAlignment=Math.max(0,life.goalAlignment-8);
+life.lastAlign=aligned;life.lastMisalign=misaligned;
+if(life.foresightActive)life.foresightActive=false;
+
+life.choiceMade=true;life.choiceIndex=idx;
+life.usedScenarios.push(scen.id);
+life.lastChoice={effects:{...effects},years:yearsChange,yearsAdvance:yearsAdvance,scenario:scen};
+
+if(life.age>=life.timePool&&!life.eternalFlame){renderGame();setTimeout(()=>endLife(),1800);}
+else renderGame();
+}
+
+function activatePower(pid){
+const life=state.currentLife;
+const power=SUPERPOWERS.find(p=>p.id===pid);
+if(!power)return;
+if((life.powersUsed[pid]||0)>=power.uses)return;
+life.powersUsed[pid]=(life.powersUsed[pid]||0)+1;
+switch(pid){
+case'foresight':life.foresightActive=true;break;
+case'vital_surge':life.timePool+=5;break;
+case'iron_will':life.ironWillActive=true;break;
+case'mind_meld':life.mindMeldActive=true;break;
+case'empathic_bond':life.empathicBondActive=true;break;
+case'creative_flow':life.creativeFlowActive=true;break;
+case'chrono_step':
+if(life.lastChoice){Object.entries(life.lastChoice.effects).forEach(([k,v])=>{life.stats[k]-=v;});life.timePool-=life.lastChoice.years;life.age-=life.lastChoice.yearsAdvance;life.usedScenarios.pop();life.choiceMade=false;life.currentScenario=life.lastChoice.scenario;life.lastChoice=null;}
+break;
+case'power_surge':life.powerSurgeActive=true;break;
+case'shadow_walk':life.usedScenarios.push(life.currentScenario.id);nextScenario();return;
+case'cosmic_sight':life.cosmicSightActive=true;break;
+case'life_weave':
+const vals=Object.values(life.stats);const avg=Math.round((Math.max(...vals)+Math.min(...vals))/2);
+STATS.forEach(s=>life.stats[s.id]=avg);break;
+case'wealth_manifest':life.wealthManifestActive=true;break;
+case'eternal_flame':life.eternalFlame=true;break;
+case'transcendence':life.transcended=true;endLife();return;
+case'reality_shift':STATS.forEach(s=>life.stats[s.id]=(life.stats[s.id]||0)+3);life.timePool+=5;break;
+}
+renderGame();
+}
+
+function endLife(){
+const life=state.currentLife;
+const ending=getEnding(life);
+// Calculate evolution points
+const totalStats=Object.values(life.stats).reduce((a,b)=>a+b,0);
+const evoGain=Math.max(1,Math.floor(totalStats/8));
+const goalBonus=life.goalAlignment>=70?2:life.goalAlignment>=50?1:0;
+const totalEvoGain=evoGain+goalBonus;
+state.pastLives.push({lives:state.lives,ending:ending.title,age:life.age,goal:life.goal,goalAlignment:life.goalAlignment,totalStats:totalStats,evoGain:totalEvoGain});
+// Apply evolution
+const goalObj=GOALS.find(g=>g.id===life.goal);
+// Distribute evolution points based on top stats
+const sortedStats=Object.entries(life.stats).sort((a,b)=>b[1]-a[1]);
+for(let i=0;i<totalEvoGain&&i<sortedStats.length;i++){
+state.evolution[sortedStats[i][0]]=(state.evolution[sortedStats[i][0]]||0)+1;
+}
+state.pendingPoints=0;
+showEnding(ending,totalEvoGain,goalBonus);
+}
+
+function getEnding(life){
+const total=Object.values(life.stats).reduce((a,b)=>a+b,0);
+const max=Math.max(...Object.values(life.stats));
+const maxStat=Object.entries(life.stats).find(([k,v])=>v===max)[0];
+const align=life.goalAlignment;
+if(life.transcended)return{title:'Transcendence',text:'You break the cycle. Your consciousness expands beyond the physical plane, beyond time, beyond death itself. You are no longer a being — you are a state of existence. The cycle cannot hold you anymore.'};
+if(total>=80&&align>=80)return{title:'Enlightened Master',text:'You achieved what few beings ever have. Every choice, every struggle, every joy led to this moment of total clarity. You see the pattern, and you are part of it.'};
+if(max>=20&&maxStat==='consciousness')return{title:'Cosmic Awakening',text:'Your consciousness expanded beyond the boundaries of your form. You see the connections between all things, the web of existence that binds the cosmos together.'};
+if(max>=20&&maxStat==='power')return{title:'Legend',text:'Your name will be spoken for millennia. The things you built, the people you led, the changes you wrought — they will outlast the stars themselves.'};
+if(max>=20&&maxStat==='compassion')return{title:'Bodhisattva',text:'You could have transcended, but you chose to stay. Your compassion for all beings keeps you in the cycle, not from bondage but from love.'};
+if(max>=20&&maxStat==='creativity')return{title:'Eternal Artist',text:'Your creations will echo through time. Every piece carries a fragment of your soul, and through them, you live on.'};
+if(max>=20&&maxStat==='resilience')return{title:'Indomitable',text:'Nothing could break you. Not time, not suffering, not the weight of existence itself. You endured, and in enduring, became something unbreakable.'};
+if(max>=20&&maxStat==='wealth')return{title:'Titan of Wealth',text:'You accumulated more than anyone thought possible. But wealth without purpose is just numbers. Did it bring you what you truly wanted?'};
+if(align>=70)return{title:'Fulfilled Purpose',text:'You stayed true to your goal through every trial. The path was not easy, but it was yours. You die knowing you accomplished what you set out to do.'};
+if(align<30)return{title:'Lost Way',text:'You wandered far from your intended path. The life you lived was not the one you chose. Perhaps next time, you will find your way back.'};
+if(life.age<25)return{title:'Tragic End',text:'Your life was cut short before its time. So much potential, so many unlived years. The cosmos weeps for what could have been.'};
+if(life.age>80)return{title:'Long Life',text:'You lived longer than most beings could dream. Every year was a gift, every moment a treasure. You leave this life full and complete.'};
+if(total<10)return{title:'Lost Soul',text:'Your life passed without purpose or direction. You drifted, touching nothing, changing nothing. The cycle claims you again, unchanged.'};
+return{title:'Peaceful Passing',text:'Your life comes to a quiet close. It was not extraordinary, but it was yours. You lived, you loved, you learned. And now, you rest.'};
+}
+
+function showEnding(ending,evoGain,goalBonus){
+const life=state.currentLife;
+const total=Object.values(life.stats).reduce((a,b)=>a+b,0);
+const goalObj=GOALS.find(g=>g.id===life.goal);
+render(`
+<div class="pt-6">
+<div class="text-center mb-4">
+<div class="text-2xl font-bold text-primary">${ending.title}</div>
+<div class="text-xs text-muted-foreground mt-1">Life ${state.lives} · ${BEINGS.find(b=>b.id===life.being).name} · ${ERAS.find(e=>e.id===life.era).name}</div>
+</div>
+<div class="rounded-xl border bg-card text-card-foreground p-4 mb-4">
+<p class="text-sm leading-relaxed">${ending.text}</p>
+</div>
+<div class="rounded-xl border bg-card text-card-foreground p-4 mb-3">
+<div class="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">Final Stats (Age ${life.age})</div>
+<div class="grid grid-cols-6 gap-1">
+${STATS.map(s=>`<div class="text-center px-1 py-1 rounded bg-muted"><div class="text-[9px] font-bold text-muted-foreground">${s.abbr}</div><div class="text-sm font-bold ${life.stats[s.id]>=10?'text-primary':''}">${life.stats[s.id]||0}</div></div>`).join('')}
+</div>
+<div class="mt-3 text-sm">
+<span class="text-muted-foreground">Goal: </span><span class="font-semibold">${goalObj.name}</span>
+<span class="text-muted-foreground"> · Alignment: </span><span class="font-semibold ${life.goalAlignment>=50?'text-primary':'text-destructive'}">${life.goalAlignment}%</span>
+</div>
+<div class="mt-2 text-sm">
+<span class="text-muted-foreground">Total Stats: </span><span class="font-semibold">${total}</span>
+<span class="text-muted-foreground"> · Evolution Gained: </span><span class="font-semibold text-primary">+${evoGain}</span>
+${goalBonus>0?`<span class="text-primary"> (+${goalBonus} goal bonus)</span>`:''}
+</div>
+</div>
+${state.pastLives.length>1?`<div class="rounded-xl border bg-card text-card-foreground p-3 mb-3">
+<div class="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">Past Lives</div>
+${state.pastLives.slice(-5).map(pl=>`<div class="text-xs flex justify-between py-1 border-t border-border last:border-0"><span class="text-muted-foreground">Life ${pl.lives}: ${pl.ending}</span><span>+${pl.evoGain} evo</span></div>`).join('')}
+</div>`:''}
+<div class="mt-5 space-y-2">
+<button onclick="reincarnate()" class="w-full py-3.5 rounded-xl bg-primary text-primary-foreground font-semibold text-sm">Reincarnate</button>
+<button onclick="showGate()" class="w-full py-3 rounded-xl bg-secondary text-secondary-foreground font-semibold text-sm">Return to Threshold</button>
+</div>
+</div>`);
+}
+
+function reincarnate(){
+// Reset creation state but keep evolution
+state.cs={goal:null,being:null,lifestyle:null,era:null,region:null,family:null,challenge:null,name:'',avatar:{body:null,head:null,eyes:null,markings:null,attire:null,distinguishing:null},mod:null};
+state.currentLife=null;
+// Award pending points
+const evo=totalEvo();
+if(evo>=3&&evo%3===0)state.pendingPoints=Math.floor(evo/3);
+if(state.pendingPoints>0)showEvolution();
+else showGoal();
+}
+
+// ========== GAME RENDERING ==========
+function renderGame(){
+const life=state.currentLife;
+const scen=life.currentScenario;
+const ctx=getFlavor();
+const goalObj=GOALS.find(g=>g.id===life.goal);
+const evo=totalEvo();
+const unlockedPowers=SUPERPOWERS.filter(p=>evo>=p.reqEvo&&evoStatLvl(p.reqStat)>=p.reqStatLvl&&p.type==='active');
+
+let h='<div class="fade">';
+// Header
+h+=`<div class="rounded-xl border bg-card text-card-foreground p-3 mb-2 sticky top-0 z-10">
+<div class="flex justify-between items-center mb-1">
+<span class="text-sm font-bold">Age ${life.age}</span>
+<span class="text-xs text-muted-foreground">Limit: ${life.timePool} yrs</span>
+${life.age>=50?'<span class="text-[10px] text-primary font-bold ml-1">REINCARNATE READY</span>':''}
+</div>
+<div class="h-1.5 rounded-full bg-muted overflow-hidden mb-2"><div class="h-full rounded-full ${life.age>=life.timePool?'bg-destructive':'bg-primary'}" style="width:${Math.min(100,(life.age/life.timePool)*100)}%"></div></div>
+<div class="text-[10px] text-muted-foreground mb-0.5">${goalObj.name} · Alignment: ${life.goalAlignment}%</div>
+<div class="h-1 rounded-full bg-muted overflow-hidden mb-2"><div class="h-full rounded-full ${life.goalAlignment>=50?'bg-primary':'bg-destructive'}" style="width:${life.goalAlignment}%"></div></div>
+<div class="grid grid-cols-6 gap-0.5">
+${STATS.map(s=>`<div class="text-center px-0.5 py-0.5 rounded ${life.stats[s.id]>=10?'bg-primary/20':'bg-muted'}"><div class="text-[8px] font-bold text-muted-foreground">${s.abbr}</div><div class="text-[11px] font-bold ${life.stats[s.id]>=10?'text-primary':''}">${life.stats[s.id]||0}</div></div>`).join('')}
+</div>
+</div>`;
+
+// Powers
+if(unlockedPowers.length>0){
+h+='<div class="flex flex-wrap gap-1 mb-2">';
+unlockedPowers.forEach(p=>{
+const rem=p.uses-(life.powersUsed[p.id]||0);
+if(rem>0){
+h+=`<button onclick="activatePower('${p.id}')" class="pw px-2.5 py-1 rounded-lg border bg-card text-card-foreground text-[11px] font-semibold hover:border-primary transition-all" title="${p.desc}">${p.name} ×${rem}</button>`;
+}else{
+h+=`<span class="px-2.5 py-1 rounded-lg border text-[11px] font-medium opacity-30 bg-muted text-muted-foreground">${p.name} ×0</span>`;
+}
+});
+h+='</div>';
+}
+
+// Active power indicators
+const activePowers=[];
+if(life.foresightActive)activePowers.push('Foresight');
+if(life.ironWillActive)activePowers.push('Iron Will');
+if(life.creativeFlowActive)activePowers.push('Creative Flow');
+if(life.powerSurgeActive)activePowers.push('Power Surge');
+if(life.cosmicSightActive)activePowers.push('Cosmic Sight');
+if(life.wealthManifestActive)activePowers.push('Wealth Manifest');
+if(life.eternalFlame)activePowers.push('Eternal Flame');
+if(activePowers.length>0){
+h+=`<div class="flex gap-1 mb-2 flex-wrap">${activePowers.map(p=>`<span class="text-[10px] px-2 py-0.5 rounded-full bg-primary text-primary-foreground font-semibold">⚡ ${p}</span>`).join('')}</div>`;
+}
+
+// Scenario or Outcome
+if(!life.choiceMade&&scen){
+const text=fill(scen.text,ctx);
+h+=`<div class="rounded-xl border bg-card text-card-foreground p-4 mb-3">
+<div class="text-[10px] font-bold text-primary uppercase tracking-wider mb-2">${scen.title}</div>
+<p class="text-sm leading-relaxed">${text}</p>
+</div>`;
+scen.choices.forEach((c,i)=>{
+h+=`<button onclick="makeChoice(${i})" class="w-full text-left p-3.5 rounded-lg border bg-card text-card-foreground hover:border-primary transition-all mb-2">
+<p class="text-sm font-medium">${c.text}</p>`;
+if(life.foresightActive||life.cosmicSightActive){
+const ef=c.effects;
+const efStr=Object.entries(ef).map(([k,v])=>{const s=STATS.find(x=>x.id===k);return `${v>0?'+':''}${v} ${s.abbr}`;}).join(' · ');
+h+=`<p class="text-[11px] text-muted-foreground mt-1">${efStr} · ${c.years>0?'+':''}${c.years} yrs</p>`;
+}
+if(life.cosmicSightActive){
+const gc=GOALS.find(g=>g.id===life.goal).cat;
+if(c.aligns.includes(gc))h+='<p class="text-[10px] text-primary mt-0.5">✓ Aligns with your goal</p>';
+else if(c.misaligns.includes(gc))h+='<p class="text-[10px] text-destructive mt-0.5">✗ Diverges from your goal</p>';
+}
+h+='</button>';
+});
+}else if(life.choiceMade&&scen){
+const choice=scen.choices[life.choiceIndex];
+const outcome=fill(choice.outcome,ctx);
+h+=`<div class="rounded-xl border bg-card text-card-foreground p-4 mb-3">
+<p class="text-sm leading-relaxed mb-3">${outcome}</p>
+<div class="flex flex-wrap gap-1.5 mb-2">
+${Object.entries(life.lastEffects).map(([k,v])=>{const s=STATS.find(x=>x.id===k);return `<span class="text-xs font-semibold px-2 py-0.5 rounded ${v>0?'text-primary':'text-destructive'} bg-muted">${s.abbr} ${v>0?'+':''}${v}</span>`;}).join('')}
+<span class="text-xs font-semibold px-2 py-0.5 rounded ${life.lastYears>0?'text-primary':'life.lastYears<0?'text-destructive':'text-muted-foreground'}' bg-muted">${life.lastYears>0?'+':''}${life.lastYears} yrs</span>
+</div>
+${life.lastAlign?'<p class="text-[11px] text-primary font-semibold">✓ Aligned with your goal</p>':life.lastMisalign?'<p class="text-[11px] text-destructive font-semibold">✗ Diverged from your goal</p>':'<p class="text-[11px] text-muted-foreground">— Neutral to your goal</p>'}
+</div>`;
+if(life.age<life.timePool||life.eternalFlame){
+h+='<button onclick="nextScenario()" class="w-full py-3 rounded-lg bg-primary text-primary-foreground font-semibold text-sm">Continue</button>';
+}else{
+h+='<p class="text-center text-sm text-muted-foreground mt-2">Your time has come...</p>';
+}
+}
+
+// Reincarnate button
+if(life.age>=50&&!life.choiceMade){
+h+='<button onclick="endLife()" class="w-full py-2.5 rounded-lg bg-secondary text-secondary-foreground font-semibold text-sm mt-2">Reincarnate Now</button>';
+}
+
+h+='</div>';
+document.getElementById('root').innerHTML=h;
+}
+
+// ========== STARFIELD ==========
+function initSF(){
+const c=document.getElementById('sf'),x=c.getContext('2d');
+let w,h,stars,neb;
+function init(){
+w=c.width=window.innerWidth;h=c.height=window.innerHeight;
+stars=Array.from({length:200},()=>({x:Math.random()*w,y:Math.random()*h,r:Math.random()*1.5+0.3,t:Math.random()*6.28,s:0.01+Math.random()*0.03,h:Math.random()<0.1?200+Math.random()*60:null}));
+neb=Array.from({length:3},()=>({x:Math.random()*w,y:Math.random()*h,r:200+Math.random()*300,h:220+Math.random()*80,a:0.03+Math.random()*0.04}));
+}
+init();window.addEventListener('resize',init);
+function draw(){
+x.fillStyle='#050510';x.fillRect(0,0,w,h);
+neb.forEach(n=>{const g=x.createRadialGradient(n.x,n.y,0,n.x,n.y,n.r);g.addColorStop(0,`hsla(${n.h},70%,50%,${n.a})`);g.addColorStop(1,'transparent');x.fillStyle=g;x.fillRect(0,0,w,h);});
+stars.forEach(s=>{s.t+=s.s;const o=0.3+Math.abs(Math.sin(s.t))*0.7;x.fillStyle=s.h?`hsla(${s.h},80%,70%,${o})`:`rgba(255,255,255,${o})`;x.beginPath();x.arc(s.x,s.y,s.r,0,6.28);x.fill();});
+requestAnimationFrame(draw);
+}
+draw();
+}
+
+// ========== INIT ==========
+initSF();
+showGate();
+</script>
+</body>
+</html>

@@ -1172,7 +1172,9 @@ var PORTRAIT_STATE={loading:false,imgUrl:null,lastPrompt:'',seed:0};
 
 function buildPortraitPrompt(){
 var a=S.cs.ava||{};var being=S.cs.being||'human';var b=BEINGS.find(b=>b.id==being);
-var bname=b?b.n:'Human';var desc=b?b.d:'';
+var bname=b?b.n:'Human';
+
+// Get ALL selected features
 var gender=(a.gender&&a.gender[0])||'';
 var skin=(a.skin_tone&&a.skin_tone[0])||'Medium';
 var hairS=(a.hair_style&&a.hair_style[0])||'Short';
@@ -1185,113 +1187,144 @@ var heightCm=a.height_cm||170;
 var weightKg=a.weight_kg||70;
 var nose=(a.nose_shape&&a.nose_shape[0])||'';
 var mouth=(a.mouth_shape&&a.mouth_shape[0])||'';
-var markings=(a.markings||[]).join(', ');
-var dist=(a.distinguishing||[]).join(', ');
-var bf=BEING_FEATURES[being]||{};
+var markings=a.markings||[];
+var dist=a.distinguishing||[];
 
-// Build being description
-var beingDesc=bname;
-if(being==='demon')beingDesc='demon with horns, dark aura, menacing';
-else if(being==='vampire')beingDesc='vampire, pale elegant immortal with fangs';
-else if(being==='angel')beingDesc='angel with glowing wings, halo, divine radiance';
-else if(being==='dragon')beingDesc='dragon, reptilian with scales, wings, horns, tail';
-else if(being==='neko')beingDesc='cat-girl with cat ears and tail, anime-inspired';
-else if(being==='merfolk')beingDesc='merfolk with aquatic features, scales, fin-like ears';
-else if(being==='phoenix')beingDesc='phoenix being with fiery feathers, glowing aura';
-else if(being==='werewolf')beingDesc='werewolf with wolf ears, fangs, tail';
-else if(being==='ghost')beingDesc='ghost, translucent ethereal spectral being';
-else if(being==='undead')beingDesc='undead, decayed zombie-like appearance';
-else if(being==='lich')beingDesc='lich, skeletal undead sorcerer with dark magic';
-else if(being==='nephilim')beingDesc='nephilim, hybrid angel-mortal with horns and halo';
-else if(being==='energy')beingDesc='energy being, luminous translucent form made of pure light';
-else if(being==='crystal')beingDesc='crystal being, geometric mineral body with crystalline structure';
-else if(being==='cyborg')beingDesc='cyborg, part human part machine with cybernetic implants';
-else if(being==='android')beingDesc='android, artificial human with subtle mechanical features';
-else if(being==='synth')beingDesc='synthetic being, engineered perfection, slightly artificial';
-else if(being==='ai')beingDesc='AI construct, digital holographic form with circuitry';
-else if(being==='spirit')beingDesc='spirit, incorporeal ethereal ghostly being';
-else if(being==='fae')beingDesc='fae, otherworldly fairy with pointed ears and natural aura';
-else if(being==='celestial')beingDesc='celestial cosmic entity, starlight body, divine wings';
-else if(being==='void_walker')beingDesc='void walker, shadowy dimensional being with dark energy';
-else if(being==='quantum')beingDesc='quantum being, shifting form existing in multiple states';
-else if(being==='witch')beingDesc='witch, mystical practitioner with arcane symbols';
-else if(being==='shifter')beingDesc='shapeshifter, fluid form, ambiguous features';
-else if(being==='hive')beingDesc='hive mind being, interconnected consciousness';
+// Build being-specific BASE features that are inherent (not user-selectable)
+// Only include features that define the BEING TYPE itself, not optional decorations
+var beingBase='';
+var beingInherent=[]; // features inherent to the being type
+if(being==='neko')beingInherent.push('cat ears on head','cat tail');
+else if(being==='dragon')beingInherent.push('reptilian dragon scales','dragon snout','clawed hands');
+else if(being==='merfolk')beingInherent.push('aquatic scales','webbed fingers','fin-like ears');
+else if(being==='ghost'||being==='spirit')beingInherent.push('translucent semi-transparent body','ethereal ghostly form');
+else if(being==='undead'||being==='lich')beingInherent.push('undead decayed skin','skeletal features');
+else if(being==='energy')beingInherent.push('body made of luminous energy','translucent glowing form');
+else if(being==='crystal')beingInherent.push('crystalline mineral body','geometric crystal structure');
+else if(being==='cyborg')beingInherent.push('cybernetic mechanical implants visible on body');
+else if(being==='android')beingInherent.push('artificial synthetic humanoid','subtle mechanical seams');
+else if(being==='fae')beingInherent.push('pointed elf-like ears','otherworldly fairy features');
+else if(being==='celestial')beingInherent.push('cosmic starlight body','celestial divine radiance');
+else if(being==='void_walker')beingInherent.push('shadowy dark energy body','dimensional rift aura');
+else if(being==='quantum')beingInherent.push('shifting quantum form','multiple overlapping states');
+else if(being==='hive')beingInherent.push('interconnected hive consciousness','networked cybernetic nodes');
+else if(being==='shifter')beingInherent.push('fluid shifting features','ambiguous form');
 
-// Build distinguishing features
+// Only add user-selected distinguishing features (NOT auto-injected)
+// Skip features already inherent to the being type
 var features=[];
-if(dist.includes('Glowing Eyes')||bf.eyes==='glow')features.push('glowing eyes');
-if(dist.includes('Visible Aura')||bf.aura)features.push('visible aura');
-if(dist.includes('Energy Wings')||bf.wings)features.push('wings');
-if(dist.includes('Tail')||bf.tail)features.push('tail');
-if(dist.includes('Horns')||bf.horns)features.push('horns');
-if(dist.includes('Halo')||bf.halo)features.push('halo');
-if(dist.includes('Cat Ears'))features.push('cat ears');
-if(dist.includes('Whiskers'))features.push('whiskers');
-if(dist.includes('Fangs'))features.push('fangs');
-if(dist.includes('Third Eye'))features.push('third eye');
-if(dist.includes('Mechanical Arm'))features.push('mechanical cybernetic arm');
-if(dist.includes('Shadow Companion'))features.push('shadow companion');
-if(dist.includes('Visible Core'))features.push('glowing energy core in chest');
-if(dist.includes('Phantom Limbs'))features.push('phantom ethereal limbs');
-if(dist.includes('Crystalline Heart'))features.push('crystalline heart visible through chest');
-if(dist.includes('Ethereal Glow'))features.push('ethereal glow');
-if(dist.includes('Aura of Power'))features.push('powerful aura emanating');
-if(dist.includes('Shadow Form'))features.push('shadowy form');
-if(dist.includes('Fractal Skin'))features.push('fractal patterns on skin');
-if(dist.includes('Energy Halo'))features.push('energy halo');
-if(dist.includes('Cybernetic Voice'))features.push('cybernetic implants');
-if(dist.includes('Glowing Scars'))features.push('glowing scars');
+var beingHasCatEars=being==='neko';
+var beingHasTail=being==='neko'||being==='dragon'||being==='merfolk'||being==='werewolf';
+var beingHasHorns=being==='demon'||being==='dragon'||being==='nephilim';
+var beingHasFangs=being==='vampire'||being==='demon'||being==='dragon'||being==='werewolf';
+var beingHasWings=being==='angel'||being==='dragon'||being==='phoenix'||being==='celestial';
+var beingHasHalo=being==='angel'||being==='celestial'||being==='nephilim';
+dist.forEach(function(d){
+if(d==='None')return;
+if(d==='Cat Ears'&&beingHasCatEars)return; // already inherent
+if(d==='Tail'&&beingHasTail)return; // already inherent
+if(d==='Horns'&&beingHasHorns)return; // already inherent
+if(d==='Fangs'&&beingHasFangs)return; // already inherent
+if(d==='Energy Wings'&&beingHasWings)return; // already inherent
+if(d==='Halo'&&beingHasHalo)return; // already inherent
+if(d==='Glowing Eyes')features.push('glowing eyes');
+else if(d==='Mechanical Arm')features.push('mechanical cybernetic arm');
+else if(d==='Visible Aura')features.push('visible aura');
+else if(d==='Energy Wings')features.push('energy wings');
+else if(d==='Tail')features.push('tail');
+else if(d==='Horns')features.push('horns on head');
+else if(d==='Halo')features.push('glowing halo');
+else if(d==='Shadow Companion')features.push('shadow companion');
+else if(d==='Third Eye')features.push('third eye on forehead');
+else if(d==='Visible Core')features.push('glowing energy core visible in chest');
+else if(d==='Fractal Skin')features.push('fractal patterns on skin');
+else if(d==='Energy Halo')features.push('energy halo');
+else if(d==='Cybernetic Voice')features.push('cybernetic implants');
+else if(d==='Glowing Scars')features.push('glowing scars on body');
+else if(d==='Phantom Limbs')features.push('phantom ethereal limbs');
+else if(d==='Aura of Power')features.push('powerful aura');
+else if(d==='Shadow Form')features.push('shadowy dark form');
+else if(d==='Crystalline Heart')features.push('crystalline heart visible through chest');
+else if(d==='Ethereal Glow')features.push('ethereal glow');
+else if(d==='Cat Ears')features.push('cat ears');
+else if(d==='Fangs')features.push('fangs');
+else if(d==='Whiskers')features.push('whiskers');
+else features.push(d.toLowerCase());
+});
 
-// Build markings
+// Only add user-selected markings (NOT auto-injected)
 var markStr='';
-if(markings&&markings.length&&!markings.includes('None')){
-if(markings.includes('Tribal Tattoos'))markStr+='tribal tattoos, ';
-if(markings.includes('Battle Scars'))markStr+='battle scars, ';
-if(markings.includes('Cybernetic Lines'))markStr+='cybernetic lines, ';
-if(markings.includes('Energy Patterns'))markStr+='glowing energy patterns on skin, ';
-if(markings.includes('Runic Marks'))markStr+='runic marks, ';
-if(markings.includes('Barcode'))markStr+='barcode on skin, ';
-if(markings.includes('Crystalline Veins'))markStr+='crystalline veins, ';
-if(markings.includes('Glowing Sigils'))markStr+='glowing sigils, ';
-if(markings.includes('Fractal Patterns'))markStr+='fractal patterns, ';
-if(markings.includes('Bioluminescent'))markStr+='bioluminescent markings, ';
-if(markings.includes('Freckles'))markStr+='freckles, ';
-if(markings.includes('Face Paint'))markStr+='face paint, ';
-if(markings.includes('War Paint'))markStr+='war paint, ';
-if(markings.includes('Sacred Geometry'))markStr+='sacred geometry tattoos, ';
-if(markings.includes('Scarred Eye'))markStr+='scar over eye, ';
-if(markings.includes('Birthmark'))markStr+='birthmark, ';
+markings.forEach(function(m){
+if(m==='None')return;
+markStr+=m.toLowerCase()+', ';
+});
 markStr=markStr.replace(/, $/,'');
-}
 
-// Assemble the full prompt
-var p='Full body character portrait, hyper-realistic, cinematic lighting, detailed, 8K, ';
-if(gender)p+=gender.toLowerCase()+' ';
-p+=beingDesc;
-if(skin)p+=', '+skin.toLowerCase()+' skin';
-if(hairS&&hairS!=='Bald')p+=', '+hairS.toLowerCase()+' '+hairC.toLowerCase()+' hair';
-else p+=', bald';
-p+=', '+eyeC.toLowerCase()+' eyes, '+expr.toLowerCase()+' expression';
-// Height and weight description
+// Height/weight calculation
 var heightFt=Math.floor(heightCm/30.48);var heightIn=Math.round((heightCm/2.54)%12);
 var bmi=weightKg/((heightCm/100)*(heightCm/100));
 var buildDesc='';
-if(bmi<18)buildDesc='very slim and slender build';
-else if(bmi<22)buildDesc='lean and toned build';
-else if(bmi<27)buildDesc='fit and athletic build';
-else if(bmi<32)buildDesc='solid and heavy-set build';
-else if(bmi<40)buildDesc='large and robust build';
-else buildDesc='very large and powerful build';
-p+=', '+heightFt+' foot '+heightIn+' inch tall, '+buildDesc+', weighing '+weightKg+'kg';
-if(nose)p+=', '+nose.toLowerCase()+' nose';
-if(mouth)p+=', '+mouth.toLowerCase()+' mouth and lips';
-p+=', '+frame.toLowerCase()+' body frame';
-p+=', wearing '+outfit.toLowerCase();
-if(markStr)p+=', '+markStr;
-if(features.length)p+=', '+features.join(', ');
-if(bf.aura)p+=', '+bf.aura+' colored aura glow';
-p+='. Standing pose, full body visible, fantasy art style, dramatic lighting, highly detailed, professional character concept art, trending on artstation';
+if(bmi<18)buildDesc='very slim slender build';
+else if(bmi<22)buildDesc='lean toned build';
+else if(bmi<27)buildDesc='fit athletic build';
+else if(bmi<32)buildDesc='solid heavy-set build';
+else if(bmi<40)buildDesc='large robust build';
+else buildDesc='very large powerful build';
+
+// Build the prompt — each feature explicitly stated
+var parts=[];
+
+// Base: being type
+parts.push('Full body character portrait of a '+bname.toLowerCase());
+
+// Being-inherent features (only those that define the species)
+if(beingInherent.length)parts.push(beingInherent.join(', '));
+
+// Gender
+if(gender)parts.push(gender.toLowerCase()+' appearance');
+
+// Skin tone — explicit
+parts.push(skin.toLowerCase()+' skin tone');
+
+// Hair — explicit
+if(hairS==='Bald')parts.push('bald head, no hair');
+else parts.push(hairS.toLowerCase()+' '+hairC.toLowerCase()+' hair');
+
+// Eyes — explicit
+parts.push(eyeC.toLowerCase()+' colored eyes');
+
+// Expression — explicit
+parts.push(expr.toLowerCase()+' facial expression');
+
+// Nose — explicit
+if(nose)parts.push(nose.toLowerCase()+' nose shape');
+
+// Mouth — explicit
+if(mouth)parts.push(mouth.toLowerCase()+' mouth');
+
+// Body frame — explicit
+parts.push(frame.toLowerCase()+' body frame');
+
+// Height/weight — explicit
+parts.push(heightFt+' foot '+heightIn+' inch tall');
+parts.push(buildDesc);
+parts.push('weighing '+weightKg+'kg');
+
+// Outfit — explicit
+parts.push('wearing '+outfit.toLowerCase()+' outfit');
+
+// Markings — only user-selected
+if(markStr)parts.push(markStr);
+
+// Distinguishing features — only user-selected
+if(features.length)parts.push(features.join(', '));
+
+// Style directives
+parts.push('standing pose, full body visible head to toe');
+parts.push('hyper-realistic, cinematic lighting, detailed, 8K');
+parts.push('professional character concept art, trending on artstation');
+
+var p=parts.join(', ')+'.';
 return p;
 }
 

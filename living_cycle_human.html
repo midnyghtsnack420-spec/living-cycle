@@ -1087,12 +1087,12 @@ function av3dRebuild(){
   var ms=1+muscle*0.3;
   var hR=0.11*headW, hL=0.13*headH;
   var neckR=0.07;
-  var torsoLen=0.5*hs;
-  var shoulderR=0.18*shoulderW;
-  var waistR=0.13*waistW*ws;
-  var hipR=0.16*hipW;
-  var armR=0.05*ms;
-  var legR=0.08*ms;
+  var torsoLen=0.48*hs;  // slightly shorter torso for better proportions
+  var shoulderR=0.17*shoulderW; // narrower shoulders
+  var waistR=0.12*waistW*ws;   // more defined waist
+  var hipR=0.17*hipW;          // fuller hips
+  var armR=0.045*ms;           // slightly slimmer arms
+  var legR=0.075*ms;           // slightly slimmer legs
   var legLen=0.75*hs;
   var hipY=legLen;
   var shoulderY=hipY+torsoLen;
@@ -1109,8 +1109,9 @@ function av3dRebuild(){
     opts=opts||{};
     var c=new THREE.Color(color);
     return new THREE.MeshStandardMaterial({
-      color:c, roughness:opts.rough||0.5, metalness:0,
-      emissive:c.clone().multiplyScalar(0.04), emissiveIntensity:0.3
+      color:c, roughness:opts.rough||0.65, metalness:0,
+      emissive:c.clone().multiplyScalar(0.02), emissiveIntensity:0.15,
+      flatShading:false
     });
   }
   function basicMat(color,opts){
@@ -1159,12 +1160,12 @@ function av3dRebuild(){
     function smooth(t){ return 0.5-0.5*Math.cos(t*Math.PI); }
 
     // Body key radii — anatomically based
-    var hipMaxR   = hipR * 1.0;           // widest at hip
-    var waistMinR  = waistR * 0.92;        // narrowest at waist
-    var chestR     = shoulderR * 0.72;     // chest/ribcage
-    var shoulderR2 = shoulderR * 0.95;    // shoulder
-    var neckBaseR  = neckR * 1.1;          // neck base
-    var underButtR = hipR * 0.88;          // below glutes
+    var hipMaxR   = hipR * 1.02;           // widest at hip
+    var waistMinR  = waistR * 0.88;        // narrowest at waist (more defined)
+    var chestR     = shoulderR * 0.68;     // chest/ribcage (narrower than shoulders)
+    var shoulderR2 = shoulderR * 0.92;    // shoulder
+    var neckBaseR  = neckR * 1.05;          // neck base
+    var underButtR = hipR * 0.85;          // below glutes
 
     for(var i=0;i<=segs;i++){
       var t=i/segs;
@@ -1560,23 +1561,61 @@ function av3dRebuild(){
   }
 
   // ========================================
-  // ARMS (sculpted cylinders with muscle definition)
+  // ARMS (hands-on-hips pose, sculpted with muscle definition)
   // ========================================
+
+  // Helper: create a cylinder between two points
+  function limbBetween(x1,y1,z1, x2,y2,z2, rTop, rBot, segs, heightSegs, mat, deformFn){
+    var dx=x2-x1, dy=y2-y1, dz=z2-z1;
+    var len=Math.sqrt(dx*dx+dy*dy+dz*dz);
+    if(len<0.001) return null;
+    var geo=new THREE.CylinderGeometry(Math.max(0.01,rTop),Math.max(0.01,rBot),len,segs||48,heightSegs||16);
+    if(deformFn){
+      var p=geo.attributes.position;
+      for(var vi=0;vi<p.count;vi++){
+        var px=p.getX(vi),py=p.getY(vi),pz=p.getZ(vi);
+        deformFn(px,py,pz,p,vi);
+      }
+      p.needsUpdate=true;
+    }
+    geo.computeVertexNormals();
+    var m=new THREE.Mesh(geo,mat);
+    // Position at midpoint
+    m.position.set((x1+x2)/2,(y1+y2)/2,(z1+z2)/2);
+    // Orient: rotate from Y axis to direction
+    var dir=new THREE.Vector3(dx,dy,dz).normalize();
+    var up=new THREE.Vector3(0,1,0);
+    var quat=new THREE.Quaternion().setFromUnitVectors(up,dir);
+    m.quaternion.copy(quat);
+    m.castShadow=true; m.receiveShadow=true;
+    g.add(m);
+    return m;
+  }
+
   for(var side=-1;side<=1;side+=2){
     var ax=side*shoulderR*1.05;
 
     // Shoulder joint ball — smooths torso-to-arm transition
     addMesh(new THREE.SphereGeometry(Math.max(0.001,armR*1.4),24,24),sMat,[ax*0.92,shoulderY-0.01,0]);
 
-    // Upper arm
-    (function(){
-      var geo=new THREE.CylinderGeometry(Math.max(0.01,armR*1.1),Math.max(0.01,armR*0.85),upperArmLen,48,16);
-      var p=geo.attributes.position;
-      for(var vi=0;vi<p.count;vi++){
-        var x=p.getX(vi),y=p.getY(vi),z=p.getZ(vi);
+    // Hands-on-hips pose: shoulder -> elbow (outward & down) -> hand (on hip)
+    var shoulderX = ax;
+    var shoulderYPos = shoulderY;
+    var elbowX = ax + side * 0.05;
+    var elbowY = shoulderY - upperArmLen * 0.85;
+    var handX = side * hipR * 0.65;
+    var handY = hipY + torsoLen * 0.08;
+    var handZ = 0;
+
+    // Upper arm (shoulder to elbow, angled outward)
+    limbBetween(
+      shoulderX, shoulderYPos, 0,
+      elbowX, elbowY, 0,
+      armR*1.1, armR*0.85, 48, 16, sMat,
+      function(x,y,z,p,vi){
         var angle=Math.atan2(z,x);
         var r=Math.sqrt(x*x+z*z);
-        var t=(y+upperArmLen/2)/upperArmLen;
+        var t=(y+0.14)/0.28; // approx normalized along arm
         // Bicep (front)
         if(Math.cos(angle)>0&&t>0.2&&t<0.7){
           r+=0.015*ms*Math.sin((t-0.2)/0.5*Math.PI)*Math.max(0,Math.cos(angle));
@@ -1589,25 +1628,22 @@ function av3dRebuild(){
         if(t>0.85){
           r+=0.015*ms*(t-0.85)/0.15;
         }
-        x=r*Math.cos(angle); z=r*Math.sin(angle);
-        p.setXYZ(vi,x,y,z);
+        p.setXYZ(vi, r*Math.cos(angle), y, r*Math.sin(angle));
       }
-      p.needsUpdate=true; geo.computeVertexNormals();
-      addMesh(geo,sMat,[ax,shoulderY-upperArmLen/2,0]);
-    })();
+    );
 
-    // Elbow
-    addMesh(new THREE.SphereGeometry(Math.max(0.001,armR*0.85),24,24),sDark,[ax,shoulderY-upperArmLen,0]);
+    // Elbow joint
+    addMesh(new THREE.SphereGeometry(Math.max(0.001,armR*0.85),24,24),sDark,[elbowX,elbowY,0]);
 
-    // Forearm
-    (function(){
-      var geo=new THREE.CylinderGeometry(Math.max(0.01,armR*0.8),Math.max(0.01,armR*0.5),forearmLen,40,14);
-      var p=geo.attributes.position;
-      for(var vi=0;vi<p.count;vi++){
-        var x=p.getX(vi),y=p.getY(vi),z=p.getZ(vi);
+    // Forearm (elbow to hand on hip, angled inward)
+    limbBetween(
+      elbowX, elbowY, 0,
+      handX, handY, handZ,
+      armR*0.8, armR*0.5, 40, 14, sMat,
+      function(x,y,z,p,vi){
         var angle=Math.atan2(z,x);
         var r=Math.sqrt(x*x+z*z);
-        var t=(y+forearmLen/2)/forearmLen;
+        var t=(y+0.125)/0.25;
         // Flexor (front)
         if(Math.cos(angle)>0&&t>0.3&&t<0.8){
           r+=0.012*ms*Math.sin((t-0.3)/0.5*Math.PI)*Math.max(0,Math.cos(angle));
@@ -1616,65 +1652,32 @@ function av3dRebuild(){
         if(Math.abs(Math.cos(angle))<0.5&&t>0.4&&t<0.8){
           r+=0.008*ms*Math.sin((t-0.4)/0.4*Math.PI);
         }
-        x=r*Math.cos(angle); z=r*Math.sin(angle);
-        p.setXYZ(vi,x,y,z);
+        p.setXYZ(vi, r*Math.cos(angle), y, r*Math.sin(angle));
       }
-      p.needsUpdate=true; geo.computeVertexNormals();
-      addMesh(geo,sMat,[ax,shoulderY-upperArmLen-forearmLen/2,0]);
-    })();
+    );
 
     // Wrist
-    addMesh(new THREE.SphereGeometry(Math.max(0.001,armR*0.5),20,20),sDark,[ax,shoulderY-upperArmLen-forearmLen,0]);
+    addMesh(new THREE.SphereGeometry(Math.max(0.001,armR*0.5),20,20),sDark,[handX,handY,handZ]);
 
-    // Hand (sculpted palm + fingers)
+    // Hand (simplified, resting on hip)
     (function(){
-      var handY=shoulderY-upperArmLen-forearmLen-0.04;
-      // Palm
-      var palmGeo=new THREE.BoxGeometry(0.05,0.065,0.02);
-      var pp=palmGeo.attributes.position;
-      for(var vi=0;vi<pp.count;vi++){
-        var x=pp.getX(vi),y=pp.getY(vi),z=pp.getZ(vi);
-        // Round the palm
-        x*=0.9+0.1*Math.sin((y+0.032)/0.065*Math.PI);
-        z*=0.8+0.2*Math.sin((y+0.032)/0.065*Math.PI);
-        pp.setXYZ(vi,x,y,z);
-      }
-      pp.needsUpdate=true; palmGeo.computeVertexNormals();
-      addMesh(palmGeo,sMat,[ax,handY,0]);
-
-      // Fingers
-      var fingerData=[
-        [-0.016,0.028,0.007],[ -0.005,0.032,0.0075],[0.005,0.03,0.007],[0.015,0.026,0.006]
-      ];
+      var palmGeo=new THREE.SphereGeometry(Math.max(0.01,armR*0.7),16,12);
+      palmGeo.scale(0.8, 0.5, 0.4);
+      addMesh(palmGeo,sMat,[handX,handY-0.01,0.02]);
+      // Fingers (curled slightly, resting on hip)
       for(var fi=0;fi<4;fi++){
-        var fd=fingerData[fi];
-        var fx=ax+fd[0]*side;
-        var fy=handY-fd[1];
-        var fr=fd[2];
-        var fLen=fd[1]+0.01;
-        var fGeo=new THREE.CylinderGeometry(fr*0.7,fr,fLen,10,3);
-        var fp=fGeo.attributes.position;
-        for(var vi=0;vi<fp.count;vi++){
-          var x=fp.getX(vi),y=fp.getY(vi),z=fp.getZ(vi);
-          // Slight curve
-          x+=0.003*Math.sin((y+fLen/2)/fLen*Math.PI);
-          fp.setXYZ(vi,x,y,z);
-        }
-        fp.needsUpdate=true; fGeo.computeVertexNormals();
+        var fOff=(fi-1.5)*0.012;
+        var fGeo=new THREE.CylinderGeometry(0.005,0.006,0.025,10,3);
         var fmesh=new THREE.Mesh(fGeo,sMat);
-        fmesh.position.set(fx,fy-fLen/2,0);
+        fmesh.position.set(handX+fOff, handY-0.025, 0.03);
+        fmesh.rotation.x = -0.3;
         fmesh.castShadow=true;
         g.add(fmesh);
-        // Fingertip
-        var tip=new THREE.Mesh(new THREE.SphereGeometry(Math.max(0.001,fr*0.7),8,8),sMat);
-        tip.position.set(fx,fy-fLen,0);
-        g.add(tip);
       }
       // Thumb
-      var thumbGeo=new THREE.CylinderGeometry(0.005,0.007,0.022,10,3);
-      var thumb=new THREE.Mesh(thumbGeo,sMat);
-      thumb.position.set(ax+0.018*side,handY-0.02,0.008);
-      thumb.rotation.z=side*-0.5;
+      var thumb=new THREE.Mesh(new THREE.CylinderGeometry(0.004,0.006,0.02,10,3),sMat);
+      thumb.position.set(handX+side*0.015, handY-0.005, 0.04);
+      thumb.rotation.z = side*-0.6;
       thumb.castShadow=true;
       g.add(thumb);
     })();

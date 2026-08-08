@@ -736,6 +736,20 @@ if(el)el.textContent=val+'kg ('+Math.round(val*2.205)+'lbs)';
 if(typeof AV3D!=='undefined'&&AV3D.initDone){av3dRebuild();}
 }
 
+function updateAvaSlider(key,val){
+S.cs.ava[key]=parseFloat(val);
+var el=document.getElementById(key+'Val');
+if(el)el.textContent=val;
+if(typeof AV3D!=='undefined'&&AV3D.initDone)av3dRebuild();
+}
+function avaSlider(key,label,min,max,step){
+var val=S.cs.ava[key]!==undefined?S.cs.ava[key]:1.0;
+return '<div style="margin-bottom:6px;padding:8px 10px;border-radius:8px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08)">'+
+'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:3px">'+
+'<span style="font-size:10px;font-weight:600;color:rgba(255,255,255,0.7)">'+label+'</span>'+
+'<span id="'+key+'Val" style="font-size:10px;color:#a5b4fc">'+val+'</span></div>'+
+'<input type="range" min="'+min+'" max="'+max+'" step="'+step+'" value="'+val+'" oninput="updateAvaSlider(\''+key+'\',this.value)" style="width:100%;height:5px;-webkit-appearance:none;background:rgba(129,140,248,0.2);border-radius:3px;outline:none;accent-color:#818cf8"/></div>';
+}
 function showAva(){
 var bname=BEINGS.find(b=>b.id==S.cs.being)?.n||'Unknown';
 if(!window.AVA_TAB)window.AVA_TAB='body';
@@ -774,20 +788,39 @@ var tabs=[
 var tabContent={
 body:
 '<input class="inp" placeholder="Enter your name..." value="'+(S.cs.name||'')+'" oninput="S.cs.name=this.value" style="margin:0 0 12px">'+
-'<div style="margin-bottom:12px;padding:10px;border-radius:8px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08)">'+
-'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px"><span style="font-size:11px;font-weight:600;color:rgba(255,255,255,0.7);text-transform:uppercase;letter-spacing:0.05em">Height</span><span id="heightVal" style="font-size:11px;color:#a5b4fc">'+(a.height_cm||170)+'cm</span></div>'+
-'<input type="range" min="140" max="220" step="1" value="'+(a.height_cm||170)+'" oninput="updateHeight(this.value)" style="width:100%;height:6px;-webkit-appearance:none;background:rgba(129,140,248,0.2);border-radius:3px;outline:none;accent-color:#818cf8"/></div>'+
-'<div style="margin-bottom:12px;padding:10px;border-radius:8px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08)">'+
-'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px"><span style="font-size:11px;font-weight:600;color:rgba(255,255,255,0.7);text-transform:uppercase;letter-spacing:0.05em">Weight</span><span id="weightVal" style="font-size:11px;color:#a5b4fc">'+(a.weight_kg||70)+'kg</span></div>'+
-'<input type="range" min="40" max="150" step="1" value="'+(a.weight_kg||70)+'" oninput="updateWeight(this.value)" style="width:100%;height:6px;-webkit-appearance:none;background:rgba(129,140,248,0.2);border-radius:3px;outline:none;accent-color:#818cf8"/></div>'+
-label('Gender')+chips('gender')+
+label('Height')+
+'<div style="margin-bottom:6px;padding:8px 10px;border-radius:8px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08)"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:3px"><span style="font-size:10px;font-weight:600;color:rgba(255,255,255,0.7)">Height</span><span id="heightVal" style="font-size:10px;color:#a5b4fc">'+(a.height_cm||170)+'cm</span></div><input type="range" min="140" max="220" step="1" value="'+(a.height_cm||170)+'" oninput="updateHeight(this.value)" style="width:100%;height:5px;-webkit-appearance:none;background:rgba(129,140,248,0.2);border-radius:3px;outline:none;accent-color:#818cf8"/></div>'+
+'<div style="margin-bottom:6px;padding:8px 10px;border-radius:8px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08)"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:3px"><span style="font-size:10px;font-weight:600;color:rgba(255,255,255,0.7)">Weight</span><span id="weightVal" style="font-size:10px;color:#a5b4fc">'+(a.weight_kg||70)+'kg</span></div><input type="range" min="40" max="150" step="1" value="'+(a.weight_kg||70)+'" oninput="updateWeight(this.value)" style="width:100%;height:5px;-webkit-appearance:none;background:rgba(129,140,248,0.2);border-radius:3px;outline:none;accent-color:#818cf8"/></div>'+
+label('Body Shape')+
+avaSlider('shoulder_w','Shoulder Width',0.7,1.3,0.01)+
+avaSlider('chest_w','Chest Width',0.7,1.3,0.01)+
+avaSlider('waist_w','Waist Width',0.7,1.3,0.01)+
+avaSlider('hip_w','Hip Width',0.7,1.3,0.01)+
+avaSlider('muscle_def','Muscle Definition',0,1,0.01)+
+label('Identity')+
+chips('gender')+
 label('Body Frame')+chips('body_frame'),
 face:
 label('Skin Tone')+swatches('skin_tone',SKIN_HEX)+
-label('Eye Color')+swatches('eye_color',EYE_HEX)+
-label('Expression')+chips('expression')+
-label('Nose Shape')+chips('nose_shape')+
-label('Mouth Shape')+chips('mouth_shape'),
+label('Head Shape')+
+avaSlider('head_w','Head Width',0.8,1.2,0.01)+
+avaSlider('head_h','Head Height',0.8,1.2,0.01)+
+avaSlider('jaw_w','Jaw Width',0.8,1.2,0.01)+
+label('Eyes')+
+swatches('eye_color',EYE_HEX)+
+avaSlider('eye_size','Eye Size',0.6,1.4,0.01)+
+avaSlider('eye_spacing','Eye Spacing',0.7,1.3,0.01)+
+avaSlider('eye_height','Eye Height',0.8,1.2,0.01)+
+avaSlider('brow_pos','Brow Position',0.7,1.3,0.01)+
+label('Nose')+
+avaSlider('nose_w','Nose Width',0.6,1.4,0.01)+
+avaSlider('nose_l','Nose Length',0.6,1.4,0.01)+
+avaSlider('nose_angle','Nose Angle',-0.3,0.3,0.01)+
+chips('nose_shape')+
+label('Mouth')+
+avaSlider('lip_size','Lip Size',0.6,1.4,0.01)+
+chips('mouth_shape')+
+label('Expression')+chips('expression'),
 hair:
 label('Hair Style')+chips('hair_style')+
 label('Hair Color')+swatches('hair_color',HAIR_HEX),
@@ -1141,6 +1174,9 @@ if(!AV3D.initDone||!AV3D.group)return;
 av3dClear();
 var a=S.cs.ava||{};var being=S.cs.being||'human';var bf=BEING_FEATURES[being]||{};
 var skin=(a.skin_tone&&a.skin_tone[0])||'Medium';var hairS=(a.hair_style&&a.hair_style[0])||'Short';var hairC=(a.hair_color&&a.hair_color[0])||'Brown';var eyeC=(a.eye_color&&a.eye_color[0])||'Brown';var expr=(a.expression&&a.expression[0])||'Neutral';var frame=(a.body_frame&&a.body_frame[0])||'Athletic';var outfit=(a.outfit&&a.outfit[0])||'Practical';
+var shW=a.shoulder_w||1.0;var chW=a.chest_w||1.0;var waW=a.waist_w||1.0;var hiW=a.hip_w||1.0;var muSc=0.85+(a.muscle_def||0.5)*0.3;
+var headW=a.head_w||1.0;var headH=a.head_h||1.0;var eyeSz=a.eye_size||1.0;var eyeSp=a.eye_spacing||1.0;var eyeYpos=a.eye_height||1.0;
+var noseW=a.nose_w||1.0;var noseL=a.nose_l||1.0;var noseAng=a.nose_angle||0;var jawW=a.jaw_w||1.0;var lipSz=a.lip_size||1.0;var browPos=a.brow_pos||1.0;
 var hasHorns=bf.horns||a.distinguishing&&a.distinguishing.includes('Horns');var hasHalo=bf.halo||a.distinguishing&&a.distinguishing.includes('Halo');var hasCatEars=bf.ears==='cat'||a.distinguishing&&a.distinguishing.includes('Cat Ears');var hasWolfEars=bf.ears==='wolf';var hasFangs=bf.fangs||a.distinguishing&&a.distinguishing.includes('Fangs');var hasTail=bf.tail||a.distinguishing&&a.distinguishing.includes('Tail');var hasWhiskers=a.distinguishing&&a.distinguishing.includes('Whiskers');var hasWings=bf.wings||a.distinguishing&&a.distinguishing.includes('Energy Wings');var hasThirdEye=a.distinguishing&&a.distinguishing.includes('Third Eye');
 var skinHex=SKIN_HEX[skin]||'#d4a070';var hairHex=HAIR_HEX[hairC]||'#5a3828';var eyeHex=EYE_HEX[eyeC]||'#5a3818';var aura=bf.aura||'#818cf8';
 var isTrans=bf.skin==='translucent';var isGlow=bf.skin==='glow';var skinAlpha=isTrans?0.55:1;
@@ -1148,22 +1184,22 @@ var glowEyes=bf.eyes==='glow'||eyeC.includes('Glowing')||eyeC==='Cyber Red';
 var skinMat=av3dMat(skinHex,{alpha:skinAlpha,emit:isGlow?aura:0,ei:isGlow?0.3:0,rough:isGlow?0.3:0.6});
 // === BODY (full body below head) ===
 // Torso
-var torsoPoints=[new THREE.Vector2(0.05,0),new THREE.Vector2(0.42,-0.05),new THREE.Vector2(0.52,-0.12),new THREE.Vector2(0.48,-0.4),new THREE.Vector2(0.38,-0.7),new THREE.Vector2(0.42,-0.9),new THREE.Vector2(0.35,-1.05),new THREE.Vector2(0.02,-1.1)];
+var torsoPoints=[new THREE.Vector2(0.05*shW,0),new THREE.Vector2(0.42*shW,-0.05),new THREE.Vector2(0.52*chW,-0.12),new THREE.Vector2(0.48*chW,-0.4),new THREE.Vector2(0.38*waW,-0.7),new THREE.Vector2(0.42*hiW,-0.9),new THREE.Vector2(0.35*hiW,-1.05),new THREE.Vector2(0.02,-1.1)];
 var torsoGeo=new THREE.LatheGeometry(torsoPoints,24);var torso=new THREE.Mesh(torsoGeo,skinMat);torso.castShadow=true;torso.receiveShadow=true;AV3D.group.add(torso);
 // Arms
 [-1,1].forEach(function(side){
-var sh=new THREE.Mesh(new THREE.SphereGeometry(0.14,16,16),skinMat);sh.position.set(side*0.55,-0.1,0);sh.castShadow=true;AV3D.group.add(sh);
-var ua=new THREE.Mesh(new THREE.CylinderGeometry(0.08,0.07,0.55,16),skinMat);ua.position.set(side*0.62,-0.38,0);ua.castShadow=true;AV3D.group.add(ua);
-var el=new THREE.Mesh(new THREE.SphereGeometry(0.07,16,16),skinMat);el.position.set(side*0.65,-0.66,0);AV3D.group.add(el);
-var fa=new THREE.Mesh(new THREE.CylinderGeometry(0.06,0.05,0.5,16),skinMat);fa.position.set(side*0.67,-0.92,0);fa.castShadow=true;AV3D.group.add(fa);
-var hd=new THREE.Mesh(new THREE.SphereGeometry(0.07,16,16),skinMat);hd.position.set(side*0.68,-1.18,0);hd.scale.set(0.8,1.3,0.5);hd.castShadow=true;AV3D.group.add(hd);
+var sh=new THREE.Mesh(new THREE.SphereGeometry(0.14*muSc,16,16),skinMat);sh.position.set(side*0.55*shW,-0.1,0);sh.castShadow=true;AV3D.group.add(sh);
+var ua=new THREE.Mesh(new THREE.CylinderGeometry(0.08*muSc,0.07*muSc,0.55,16),skinMat);ua.position.set(side*0.62*shW,-0.38,0);ua.castShadow=true;AV3D.group.add(ua);
+var el=new THREE.Mesh(new THREE.SphereGeometry(0.07*muSc,16,16),skinMat);el.position.set(side*0.65*shW,-0.66,0);AV3D.group.add(el);
+var fa=new THREE.Mesh(new THREE.CylinderGeometry(0.06*muSc,0.05*muSc,0.5,16),skinMat);fa.position.set(side*0.67*shW,-0.92,0);fa.castShadow=true;AV3D.group.add(fa);
+var hd=new THREE.Mesh(new THREE.SphereGeometry(0.07*muSc,16,16),skinMat);hd.position.set(side*0.68*shW,-1.18,0);hd.scale.set(0.8,1.3,0.5);hd.castShadow=true;AV3D.group.add(hd);
 });
 // Legs
 [-1,1].forEach(function(side){
-var th=new THREE.Mesh(new THREE.CylinderGeometry(0.12,0.10,0.65,16),skinMat);th.position.set(side*0.15,-1.35,0);th.castShadow=true;AV3D.group.add(th);
-var kn=new THREE.Mesh(new THREE.SphereGeometry(0.10,16,16),skinMat);kn.position.set(side*0.15,-1.68,0);AV3D.group.add(kn);
-var sn=new THREE.Mesh(new THREE.CylinderGeometry(0.09,0.06,0.6,16),skinMat);sn.position.set(side*0.15,-1.98,0);sn.castShadow=true;AV3D.group.add(sn);
-var ft=new THREE.Mesh(new THREE.BoxGeometry(0.13,0.06,0.25),skinMat);ft.position.set(side*0.15,-2.3,0.06);ft.castShadow=true;AV3D.group.add(ft);
+var th=new THREE.Mesh(new THREE.CylinderGeometry(0.12*muSc,0.10*muSc,0.65,16),skinMat);th.position.set(side*0.15*hiW,-1.35,0);th.castShadow=true;AV3D.group.add(th);
+var kn=new THREE.Mesh(new THREE.SphereGeometry(0.10*muSc,16,16),skinMat);kn.position.set(side*0.15*hiW,-1.68,0);AV3D.group.add(kn);
+var sn=new THREE.Mesh(new THREE.CylinderGeometry(0.09*muSc,0.06*muSc,0.6,16),skinMat);sn.position.set(side*0.15*hiW,-1.98,0);sn.castShadow=true;AV3D.group.add(sn);
+var ft=new THREE.Mesh(new THREE.BoxGeometry(0.13,0.06,0.25),skinMat);ft.position.set(side*0.15*hiW,-2.3,0.06);ft.castShadow=true;AV3D.group.add(ft);
 });
 // === OUTFIT overlay ===
 var outfitHex=OUTFIT_HEX[outfit]||'#4a4a5a';
@@ -1175,16 +1211,16 @@ var oLeg=new THREE.Mesh(new THREE.CylinderGeometry(0.12,0.09,1.3,16),outfitMat);
 var oSh=new THREE.Mesh(new THREE.SphereGeometry(0.15,16,16),outfitMat);oSh.position.set(side*0.55,-0.1,0);oSh.scale.set(1,0.5,1);oSh.castShadow=true;AV3D.group.add(oSh);
 });
 // === HEAD ===
-var headGeo=new THREE.SphereGeometry(1,32,32);headGeo.scale(0.9,1.05,0.95);
+var headGeo=new THREE.SphereGeometry(1,32,32);headGeo.scale(0.9*headW*jawW,1.05*headH,0.95*headW);
 var head=new THREE.Mesh(headGeo,skinMat);head.castShadow=true;AV3D.group.add(head);
 var neckGeo=new THREE.CylinderGeometry(0.35,0.45,0.5,16);var neck=new THREE.Mesh(neckGeo,skinMat);neck.position.y=-1.1;AV3D.group.add(neck);
 // Nose
-var noseGeo=new THREE.ConeGeometry(0.08,0.25,8);var nose=new THREE.Mesh(noseGeo,skinMat);nose.position.set(0,-0.05,0.95);nose.rotation.x=0.3;AV3D.group.add(nose);
+var noseGeo=new THREE.ConeGeometry(0.08*noseW,0.25*noseL,8);var nose=new THREE.Mesh(noseGeo,skinMat);nose.position.set(0,-0.05,0.95);nose.rotation.x=0.3+noseAng;AV3D.group.add(nose);
 // Eyes
 var eyeWhiteMat=av3dMat('#f8f8f0',{rough:0.3,alpha:glowEyes?0.4:1});
 var irisMat=av3dMat(eyeHex,{rough:0.2,emit:glowEyes?eyeHex:0,ei:glowEyes?0.6:0});
-var eyeY=-0.05,eyeZ=0.82,eyeX=0.32;
-var eSize=0.18;if(expr==='Surprised')eSize=0.22;if(expr==='Smiling'||expr==='Laughing')eSize=0.12;if(expr==='Angry')eSize=0.14;
+var eyeY=-0.05*eyeYpos,eyeZ=0.82,eyeX=0.32*eyeSp;
+var eSize=0.18;if(expr==='Surprised')eSize=0.22;if(expr==='Smiling'||expr==='Laughing')eSize=0.12;if(expr==='Angry')eSize=0.14;eSize*=eyeSz;
 [-eyeX,eyeX].forEach(function(x){
 var w=new THREE.Mesh(new THREE.SphereGeometry(eSize,16,16),eyeWhiteMat);w.position.set(x,eyeY,eyeZ);w.scale.z=0.4;AV3D.group.add(w);
 var i=new THREE.Mesh(new THREE.SphereGeometry(eSize*0.5,12,12),irisMat);i.position.set(x,eyeY,eyeZ+eSize*0.3);i.scale.z=0.4;AV3D.group.add(i);
@@ -1192,11 +1228,11 @@ var p=new THREE.Mesh(new THREE.SphereGeometry(eSize*0.2,8,8),av3dMat('#1a1a1a'))
 });
 if(hasThirdEye){var t=new THREE.Mesh(new THREE.SphereGeometry(0.12,12,12),av3dMat('#8a48a8',{emit:'#8a48a8',ei:0.5}));t.position.set(0,0.35,eyeZ);t.scale.z=0.4;AV3D.group.add(t);}
 // Eyebrows
-var browY=0.22,browAng=0;
+var browY=0.22*browPos,browAng=0;
 if(expr==='Angry'){browY=0.18;browAng=0.3}else if(expr==='Sad'){browY=0.12;browAng=-0.3}else if(expr==='Surprised'){browY=0.28;browAng=0}else if(expr==='Fierce'){browY=0.16;browAng=0.35}
 [-eyeX,eyeX].forEach(function(x,side){var b=new THREE.Mesh(new THREE.BoxGeometry(0.22,0.04,0.08),av3dMat(hairHex));b.position.set(x,browY,eyeZ+0.05);b.rotation.z=browAng*(side===0?1:-1);AV3D.group.add(b);});
 // Mouth
-var mY=-0.35,mZ=0.85;var mouthShape=new THREE.Group();
+var mY=-0.35,mZ=0.85;var mouthShape=new THREE.Group();mouthShape.scale.setScalar(lipSz);
 if(expr==='Smiling'||expr==='Content'||expr==='Laughing'){var t=new THREE.Mesh(new THREE.TorusGeometry(0.15,0.03,8,16,Math.PI),av3dMat('#c84040'));t.position.set(0,mY,mZ);t.rotation.z=Math.PI;mouthShape.add(t);
 }else if(expr==='Fierce'||expr==='Angry'){var b=new THREE.Mesh(new THREE.BoxGeometry(0.22,0.04,0.05),av3dMat('#c84040'));b.position.set(0,mY+0.03,mZ);mouthShape.add(b);
 }else if(expr==='Sad'){var t=new THREE.Mesh(new THREE.TorusGeometry(0.12,0.03,8,16,Math.PI),av3dMat('#c84040'));t.position.set(0,mY,mZ);t.rotation.z=0;mouthShape.add(t);

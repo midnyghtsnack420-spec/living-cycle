@@ -48,9 +48,13 @@ input[type="range"]::-webkit-slider-runnable-track{height:6px;background:rgba(12
 input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:18px;height:18px;border-radius:50%;background:#818cf8;margin-top:-6px;box-shadow:0 0 8px rgba(129,140,248,0.4);cursor:pointer}
 input[type="range"]::-moz-range-track{height:6px;background:rgba(129,140,248,0.2);border-radius:3px}
 input[type="range"]::-moz-range-thumb{width:18px;height:18px;border-radius:50%;background:#818cf8;border:none;box-shadow:0 0 8px rgba(129,140,248,0.4);cursor:pointer}
+.avatartab{font-family:inherit;outline:none}
+.avatartab:hover{background:rgba(255,255,255,0.08)!important}
+.tabpanel{animation:fadeIn 0.2s ease}
 </style>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script></head>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/exporters/GLTFExporter.js"></script></head>
 <body>
 <canvas id="sf"></canvas><div id="root"></div>
 <script>
@@ -716,126 +720,6 @@ function showWorld(){R(`<div style="padding-top:16px"><div class="ttl" style="fo
 function showCirc(){R(`<div style="padding-top:16px"><div class="ttl" style="font-size:18px">Choose Your Circumstances</div><div class="sl">Family Background</div>${FAMILIES.map(f=>`<div class="card${S.cs.fam==f.id?' sel':''}" style="padding:10px" onclick="S.cs.fam='${f.id}';showCirc()"><div style="display:flex;justify-content:space-between"><span style="font-weight:500;font-size:13px">${f.n}</span><span class="${f.y>0?'ac':f.y<0?'wn':'mt'}" style="font-size:11px">${f.y>0?'+':''}${f.y} yrs</span></div><div class="cd">${f.d}</div></div>`).join('')}<div class="sl">Challenge</div>${CHALLENGES.map(ch=>`<div class="card${S.cs.ch==ch.id?' sel':''}" style="padding:10px" onclick="S.cs.ch='${ch.id}';showCirc()"><div style="display:flex;justify-content:space-between"><span style="font-weight:500;font-size:13px">${ch.n}</span><span class="${ch.y>0?'ac':ch.y<0?'wn':'mt'}" style="font-size:11px">${ch.y>0?'+':''}${ch.y} yrs</span></div><div class="cd">${ch.d}</div></div>`).join('')}<div style="display:flex;gap:8px;margin-top:12px"><button class="btn btn-s" style="max-width:80px" onclick="showWorld()">Back</button><button class="btn btn-p" style="flex:1" ${S.cs.fam&&S.cs.ch?'':'disabled'} onclick="showAva()">Continue</button></div></div>`)}
 
 
-/* === CANVA INTEGRATION === */
-var CANVA_CONNECTED = false;
-var CANVA_LOADING = false;
-async function canvaConnect(){
-if(CANVA_LOADING)return;
-CANVA_LOADING=true;
-try{
-var res=await fetch('https://miro-8307984e.base44.app/functions/canvaAuth',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'start'})});
-var data=await res.json();
-if(data.authUrl){
-window.open(data.authUrl,'canva_auth','width=600,height=700');
-}
-}catch(e){console.log('Canva connect error:',e);}
-CANVA_LOADING=false;
-}
-window.addEventListener('message',function(e){
-if(e.data&&e.data.type==='canva_connected'&&e.data.success){
-CANVA_CONNECTED=true;
-showAva();
-}
-});
-async function canvaCheckStatus(){
-try{
-var res=await fetch('https://miro-8307984e.base44.app/functions/canvaAuth',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'status'})});
-var data=await res.json();
-CANVA_CONNECTED=data.connected||false;
-return CANVA_CONNECTED;
-}catch(e){return false;}
-}
-async function canvaExportPortrait(){
-if(!CANVA_CONNECTED){alert('Please connect your Canva account first.');return;}
-var bname=BEINGS.find(b=>b.id==S.cs.being)?.n||'Unknown';
-var a=S.cs.ava||{};
-var skin=(a.skin_tone&&a.skin_tone[0])||'Medium';
-var hairS=(a.hair_style&&a.hair_style[0])||'Short';
-var hairC=(a.hair_color&&a.hair_color[0])||'Brown';
-var eyeC=(a.eye_color&&a.eye_color[0])||'Brown';
-var expr=(a.expression&&a.expression[0])||'Neutral';
-var outfit=(a.outfit&&a.outfit[0])||'Practical';
-// Build prompt
-var prompt='Portrait of a '+bname+' character, '+skin+' skin, '+hairS+' '+hairC+' hair, '+eyeC+' eyes, '+expr+' expression, wearing '+outfit+' outfit, fantasy character portrait, detailed digital art, dramatic lighting, dark background';
-// Show loading
-var btn=document.getElementById('canvaExportBtn');
-if(btn){btn.textContent='Generating portrait...';btn.disabled=true;}
-try{
-// Generate AI portrait
-var imgRes=await fetch('https://miro-8307984e.base44.app/functions/canvaUpload',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'upload',imageUrl:null,prompt:prompt,name:(S.cs.name||bname)+' - Living Cycle'})});
-// Actually we need to generate the image first using our built-in generator
-// Then upload to Canva
-}catch(e){
-console.log('Canva export error:',e);
-if(btn){btn.textContent='Export to Canva';btn.disabled=false;}
-alert('Export failed: '+e.message);
-}
-}
-async function canvaExportWithImage(imageUrl){
-if(!CANVA_CONNECTED)return;
-var bname=BEINGS.find(b=>b.id==S.cs.being)?.n||'Unknown';
-var btn=document.getElementById('canvaExportBtn');
-if(btn){btn.textContent='Uploading to Canva...';btn.disabled=true;}
-try{
-var res=await fetch('https://miro-8307984e.base44.app/functions/canvaUpload',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'upload',imageUrl:imageUrl,name:(S.cs.name||bname)+' - Living Cycle'})});
-var data=await res.json();
-if(data.success){
-if(btn){btn.textContent='✓ Uploaded to Canva!';btn.style.background='#22c55e';}
-setTimeout(function(){if(btn){btn.textContent='Export to Canva';btn.disabled=false;btn.style.background='';}showAva();},3000);
-}else{
-alert('Upload failed: '+(data.message||data.error||'Unknown error'));
-if(btn){btn.textContent='Export to Canva';btn.disabled=false;}
-}
-}catch(e){
-console.log('Canva upload error:',e);
-if(btn){btn.textContent='Export to Canva';btn.disabled=false;}
-alert('Upload failed: '+e.message);
-}
-}
-
-async function canvaGenerateAndExport(){
-var bname=BEINGS.find(b=>b.id==S.cs.being)?.n||'Unknown';
-var btn=document.getElementById('canvaExportBtn');
-if(btn){btn.textContent='Preparing portrait...';btn.disabled=true;}
-try{
-// If no portrait generated yet, generate one first
-if(!AV3D.initDone){
-if(btn){btn.textContent='Loading 3D...';}
-av3dInit('avatar3D');
-// Wait for portrait to load
-var waitCount=0;
-while(!AV3D.initDone&&waitCount<15){await new Promise(r=>setTimeout(r,500));waitCount++;}
-if(!AV3D.initDone){
-if(btn){btn.textContent='Export Portrait to Canva';btn.disabled=false;}
-alert('Portrait not ready. Click "Generate Portrait" first, then export.');
-return;
-}
-}
-if(btn){btn.textContent='Uploading to Canva...';}
-// Upload the Pollinations portrait to Canva
-var res=await fetch('https://miro-8307984e.base44.app/functions/canvaUpload',{
-method:'POST',
-headers:{'Content-Type':'application/json'},
-body:JSON.stringify({action:'upload',imageData:av3dSnapshot(),name:(S.cs.name||bname)+' - Living Cycle Avatar'})
-});
-var data=await res.json();
-if(data.success){
-if(btn){btn.textContent='\u2713 Uploaded to Canva!';btn.style.background='#22c55e';}
-setTimeout(function(){if(btn){btn.textContent='Export Portrait to Canva';btn.disabled=false;btn.style.background='';}},3000);
-}else{
-alert('Export failed: '+(data.message||data.error||'Unknown error'));
-if(btn){btn.textContent='Export Portrait to Canva';btn.disabled=false;}
-}
-}catch(e){
-console.log('Canva export error:',e);
-if(btn){btn.textContent='Export Portrait to Canva';btn.disabled=false;}
-alert('Export failed: '+e.message);
-}
-}
-
-/* === END CANVA INTEGRATION === */
-
-
 /* === SLIDER HANDLERS === */
 function updateHeight(val){
 S.cs.ava.height_cm=parseInt(val);
@@ -854,39 +738,111 @@ if(typeof AV3D!=='undefined'&&AV3D.initDone){av3dRebuild();}
 
 function showAva(){
 var bname=BEINGS.find(b=>b.id==S.cs.being)?.n||'Unknown';
-var svgStr=renderAvatarSVG();
-var selCount=0;Object.values(S.cs.ava||{}).forEach(function(v){if(v&&v.length)selCount+=v.length});
-var canvaBtn=CANVA_CONNECTED
-?'<button id="canvaExportBtn" class="btn btn-p" style="width:100%;margin-top:8px;background:linear-gradient(135deg,#8b5cf6,#6366f1);font-size:11px" onclick="canvaGenerateAndExport()">Export Portrait to Canva</button>'
-:'<button class="btn btn-s" style="width:100%;margin-top:8px;font-size:11px;display:flex;align-items:center;justify-content:center;gap:6px" onclick="canvaConnect()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg> Connect Canva</button>';
-R('<div style="padding-top:16px"><div class="ttl" style="font-size:18px">Create Your Avatar</div>'+
-'<div style="text-align:center;margin:8px 0 12px">'+
-'<div id="avatar3D" style="width:280px;height:400px;margin:0 auto;position:relative;border-radius:12px;overflow:hidden;box-shadow:0 0 30px rgba(129,140,248,0.3),0 4px 20px rgba(0,0,0,0.5);background:rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center"><div style="font-size:10px;color:rgba(255,255,255,0.4)">Loading 3D...</div></div>'+
-'<div style="text-align:center;margin-top:6px;font-size:10px;color:rgba(255,255,255,0.45)">Drag to rotate &middot; Scroll to zoom &middot; Live 3D</div>'+
-'<div style="margin-top:8px;font-size:14px;font-weight:600;text-align:center">'+bname+'</div>'+
-'<div class="mt" style="font-size:12px;text-align:center">'+(S.cs.name||'Unnamed')+'</div>'+
-(selCount>0?'<div class="mt" style="font-size:10px;color:#a5b4fc;text-align:center">'+selCount+' features selected</div>':'')+
-'<div class="mt" style="font-size:9px;color:rgba(255,255,255,0.4);margin-top:2px;text-align:center">AI portrait &middot; hyper-realistic full body</div>'+
-'</div>'+
-'<input class="inp" placeholder="Enter your name..." value="'+(S.cs.name||'')+'" oninput="S.cs.name=this.value" style="margin:8px 0">'+
-// Height & Weight sliders
-'<div style="margin-bottom:12px;padding:10px;border-radius:8px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08)">'+
-'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px"><span style="font-size:11px;font-weight:600;color:rgba(255,255,255,0.7);text-transform:uppercase;letter-spacing:0.05em">Height</span><span id="heightVal" style="font-size:11px;color:#a5b4fc">'+(S.cs.ava.height_cm||170)+'cm</span></div>'+
-'<input type="range" min="140" max="220" step="1" value="'+(S.cs.ava.height_cm||170)+'" oninput="updateHeight(this.value)" style="width:100%;height:6px;-webkit-appearance:none;background:rgba(129,140,248,0.2);border-radius:3px;outline:none;accent-color:#818cf8"/><div style="display:flex;justify-content:space-between;margin-top:2px"><span style="font-size:8px;color:rgba(255,255,255,0.3)">4\'7"</span><span style="font-size:8px;color:rgba(255,255,255,0.3)">7\'3"</span></div>'+
-'</div>'+
-'<div style="margin-bottom:12px;padding:10px;border-radius:8px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08)">'+
-'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px"><span style="font-size:11px;font-weight:600;color:rgba(255,255,255,0.7);text-transform:uppercase;letter-spacing:0.05em">Weight</span><span id="weightVal" style="font-size:11px;color:#a5b4fc">'+(S.cs.ava.weight_kg||70)+'kg</span></div>'+
-'<input type="range" min="40" max="150" step="1" value="'+(S.cs.ava.weight_kg||70)+'" oninput="updateWeight(this.value)" style="width:100%;height:6px;-webkit-appearance:none;background:rgba(129,140,248,0.2);border-radius:3px;outline:none;accent-color:#818cf8"/><div style="display:flex;justify-content:space-between;margin-top:2px"><span style="font-size:8px;color:rgba(255,255,255,0.3)">88 lbs</span><span style="font-size:8px;color:rgba(255,255,255,0.3)">330 lbs</span></div>'+
-'</div>'+
-Object.entries(AVA).map(function(kv){
-var k=kv[0],v=kv[1];var label=k.replace(/_/g,' ');var isMulti=k==='distinguishing'||k==='markings';var sel=S.cs.ava[k]||[];
-return '<div style="margin-bottom:8px"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px"><span style="font-size:11px;font-weight:600;color:rgba(255,255,255,0.7);text-transform:uppercase;letter-spacing:0.05em">'+label+'</span><span class="mt" style="font-size:9px">'+(isMulti?'multi':'pick 1')+'</span></div><div style="display:flex;flex-wrap:wrap;gap:4px">'+
-v.map(function(x){var isSel=sel.includes(x);return '<span class="chip'+(isSel?' sel':'')+'" style="font-size:10px;padding:4px 8px" onclick="togAva(\''+k+'\',\''+x+'\')">'+x+'</span>'}).join('')+'</div></div>'
-}).join('')+
-'<div style="margin-top:8px">'+canvaBtn+'</div>'+
-'<div style="display:flex;gap:8px;margin-top:12px"><button class="btn btn-s" style="max-width:80px" onclick="showCirc()">Back</button><button class="btn btn-s" style="max-width:80px" onclick="S.cs.ava={};showAva()">Reset</button><button class="btn btn-p" style="flex:1" onclick="showMods()">Continue</button></div></div>');
-setTimeout(function(){if(!CANVA_CONNECTED){canvaCheckStatus().then(function(){if(CANVA_CONNECTED)showAva();});}setTimeout(function(){av3dInit('avatar3D');},500);},50);
+if(!window.AVA_TAB)window.AVA_TAB='body';
+var a=S.cs.ava||{};
+
+function swatches(k,hexMap){
+var sel=a[k]||[];
+return '<div style="display:flex;flex-wrap:wrap;gap:6px">'+(AVA[k]||[]).map(function(x){
+var isSel=sel.includes(x);
+var hex=hexMap[x]||'#888';
+return '<div onclick="togAva(\''+k+'\',\''+x+'\')" style="width:28px;height:28px;border-radius:50%;cursor:pointer;border:2px solid '+(isSel?'#818cf8':'rgba(255,255,255,0.15)')+';background:'+hex+';box-shadow:'+(isSel?'0 0 8px rgba(129,140,248,0.5)':'none')+';transition:all 0.15s" title="'+x+'"></div>';
+}).join('')+'</div>';
 }
+
+function chips(k){
+var isMulti=k==='distinguishing'||k==='markings';
+var sel=a[k]||[];
+return '<div style="display:flex;flex-wrap:wrap;gap:4px">'+(AVA[k]||[]).map(function(x){
+var isSel=sel.includes(x);
+return '<span class="chip'+(isSel?' sel':'')+'" style="font-size:10px;padding:4px 8px" onclick="togAva(\''+k+'\',\''+x+'\')">'+x+'</span>';
+}).join('')+'</div>';
+}
+
+function label(txt){
+return '<div style="font-size:11px;font-weight:600;color:rgba(255,255,255,0.7);text-transform:uppercase;letter-spacing:0.05em;margin:12px 0 6px">'+txt+'</div>';
+}
+
+var tabs=[
+{id:'body',icon:'🏃',label:'Body'},
+{id:'face',icon:'👁',label:'Face'},
+{id:'hair',icon:'💇',label:'Hair'},
+{id:'style',icon:'👕',label:'Style'},
+{id:'export',icon:'💾',label:'Export'}
+];
+
+var tabContent={
+body:
+'<input class="inp" placeholder="Enter your name..." value="'+(S.cs.name||'')+'" oninput="S.cs.name=this.value" style="margin:0 0 12px">'+
+'<div style="margin-bottom:12px;padding:10px;border-radius:8px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08)">'+
+'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px"><span style="font-size:11px;font-weight:600;color:rgba(255,255,255,0.7);text-transform:uppercase;letter-spacing:0.05em">Height</span><span id="heightVal" style="font-size:11px;color:#a5b4fc">'+(a.height_cm||170)+'cm</span></div>'+
+'<input type="range" min="140" max="220" step="1" value="'+(a.height_cm||170)+'" oninput="updateHeight(this.value)" style="width:100%;height:6px;-webkit-appearance:none;background:rgba(129,140,248,0.2);border-radius:3px;outline:none;accent-color:#818cf8"/></div>'+
+'<div style="margin-bottom:12px;padding:10px;border-radius:8px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08)">'+
+'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px"><span style="font-size:11px;font-weight:600;color:rgba(255,255,255,0.7);text-transform:uppercase;letter-spacing:0.05em">Weight</span><span id="weightVal" style="font-size:11px;color:#a5b4fc">'+(a.weight_kg||70)+'kg</span></div>'+
+'<input type="range" min="40" max="150" step="1" value="'+(a.weight_kg||70)+'" oninput="updateWeight(this.value)" style="width:100%;height:6px;-webkit-appearance:none;background:rgba(129,140,248,0.2);border-radius:3px;outline:none;accent-color:#818cf8"/></div>'+
+label('Gender')+chips('gender')+
+label('Body Frame')+chips('body_frame'),
+face:
+label('Skin Tone')+swatches('skin_tone',SKIN_HEX)+
+label('Eye Color')+swatches('eye_color',EYE_HEX)+
+label('Expression')+chips('expression')+
+label('Nose Shape')+chips('nose_shape')+
+label('Mouth Shape')+chips('mouth_shape'),
+hair:
+label('Hair Style')+chips('hair_style')+
+label('Hair Color')+swatches('hair_color',HAIR_HEX),
+style:
+label('Outfit')+chips('outfit')+
+label('Markings (multi)')+chips('markings')+
+label('Distinguishing (multi)')+chips('distinguishing'),
+export:
+'<div style="text-align:center;padding:16px">'+
+'<div style="font-size:14px;font-weight:600;margin-bottom:8px">Export Your Avatar</div>'+
+'<p style="font-size:11px;color:rgba(255,255,255,0.5);margin-bottom:16px">Download your 3D avatar for use in Blender or as an image.</p>'+
+'<button class="btn btn-p" style="width:100%;margin-bottom:8px" onclick="snapshotAvatar()">📸 Save Screenshot (PNG)</button>'+
+'<button class="btn btn-p" style="width:100%;background:linear-gradient(135deg,#f97316,#ea580c);margin-bottom:8px" onclick="exportGLB()">🟠 Export for Blender (.glb)</button>'+
+'<div style="margin-top:12px;padding:10px;border-radius:8px;background:rgba(255,165,0,0.08);border:1px solid rgba(255,165,0,0.2);font-size:10px;color:rgba(255,200,150,0.7);text-align:left;line-height:1.5">'+
+'📁 To open in Blender:<br>1. Download the .glb file above<br>2. Open Blender → File → Import → glTF 2.0<br>3. Select your downloaded .glb file<br>4. Your avatar appears as a full 3D model!'+
+'</div></div>'
+};
+
+R(
+'<div style="padding-top:16px">'+
+'<div class="ttl" style="font-size:18px;text-align:center">Create Your Avatar</div>'+
+'<div style="text-align:center;font-size:12px;color:rgba(255,255,255,0.4);margin-bottom:12px">'+bname+' &middot; Drag to rotate &middot; Scroll to zoom</div>'+
+'<div style="text-align:center;margin-bottom:16px">'+
+'<div id="avatar3D" style="width:280px;height:400px;margin:0 auto;position:relative;border-radius:12px;overflow:hidden;box-shadow:0 0 30px rgba(129,140,248,0.3),0 4px 20px rgba(0,0,0,0.5);background:rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center"><div style="font-size:10px;color:rgba(255,255,255,0.4)">Loading 3D...</div></div>'+
+'</div>'+
+'<div style="display:flex;gap:4px;margin-bottom:12px">'+
+tabs.map(function(t){
+return '<button data-tab="'+t.id+'" class="avatartab'+(AVA_TAB===t.id?' active':'')+'" style="flex:1;padding:8px 4px;font-size:10px;font-weight:600;background:rgba(255,255,255,'+(AVA_TAB===t.id?'0.1':'0.03')+') ;border:none;border-bottom:2px solid '+(AVA_TAB===t.id?'#818cf8':'transparent')+';color:'+(AVA_TAB===t.id?'#c7d2fe':'rgba(255,255,255,0.5)')+';cursor:pointer;transition:all 0.15s;border-radius:6px 6px 0 0" onclick="switchAvaTab(\''+t.id+'\')">'+t.icon+' '+t.label+'</button>';
+}).join('')+
+'</div>'+
+tabs.map(function(t){
+return '<div data-panel="'+t.id+'" class="tabpanel" style="display:'+(AVA_TAB===t.id?'block':'none')+'">'+tabContent[t.id]+'</div>';
+}).join('')+
+'<div style="display:flex;gap:8px;margin-top:12px">'+
+'<button class="btn btn-s" style="max-width:80px" onclick="showCirc()">Back</button>'+
+'<button class="btn btn-s" style="max-width:80px" onclick="S.cs.ava={};showAva()">Reset</button>'+
+'<button class="btn btn-p" style="flex:1" onclick="showMods()">Continue</button>'+
+'</div></div>'
+);
+setTimeout(function(){av3dInit('avatar3D');},50);
+}
+
+function switchAvaTab(tabId){
+window.AVA_TAB=tabId;
+document.querySelectorAll('.avatartab').forEach(function(btn){
+var active=btn.dataset.tab===tabId;
+btn.style.background='rgba(255,255,255,'+(active?'0.1':'0.03')+')';
+btn.style.borderBottomColor=active?'#818cf8':'transparent';
+btn.style.color=active?'#c7d2fe':'rgba(255,255,255,0.5)';
+});
+document.querySelectorAll('.tabpanel').forEach(function(panel){
+panel.style.display=panel.dataset.panel===tabId?'block':'none';
+});
+}
+
 
 function togAva(k,x){
 if(!S.cs.ava[k])S.cs.ava[k]=[];
@@ -1294,6 +1250,35 @@ AV3D.animId=requestAnimationFrame(av3dAnimate);
 }
 function av3dDestroy(){if(AV3D.animId)cancelAnimationFrame(AV3D.animId);AV3D.animId=null;AV3D.initDone=false;if(AV3D.renderer){AV3D.renderer.dispose();AV3D.renderer=null;}if(AV3D.canvas&&AV3D.canvas.parentNode)AV3D.canvas.parentNode.removeChild(AV3D.canvas);AV3D.canvas=null;AV3D.scene=null;AV3D.group=null;}
 function av3dSnapshot(){if(!AV3D.initDone||!AV3D.renderer)return null;AV3D.renderer.render(AV3D.scene,AV3D.camera);return AV3D.renderer.domElement.toDataURL('image/png');}
+
+function snapshotAvatar(){
+if(!AV3D.initDone||!AV3D.renderer)return;
+AV3D.renderer.render(AV3D.scene,AV3D.camera);
+var dataUrl=AV3D.renderer.domElement.toDataURL('image/png');
+var a=document.createElement('a');
+a.href=dataUrl;
+a.download='living_cycle_avatar.png';
+document.body.appendChild(a);
+a.click();
+document.body.removeChild(a);
+}
+
+function exportGLB(){
+if(!AV3D.initDone||!AV3D.group)return;
+if(typeof THREE.GLTFExporter==='undefined'){alert('GLTFExporter not loaded. Please refresh the page.');return;}
+var exporter=new THREE.GLTFExporter();
+exporter.parse(AV3D.group,function(result){
+var blob=new Blob([result],{type:'model/gltf-binary'});
+var url=URL.createObjectURL(blob);
+var a=document.createElement('a');
+a.href=url;
+a.download='living_cycle_avatar.glb';
+document.body.appendChild(a);
+a.click();
+document.body.removeChild(a);
+URL.revokeObjectURL(url);
+},{binary:true});
+}
 // === END 3D AVATAR ENGINE ===
 
 var PORTRAIT_STATE={loading:false,imgUrl:null,lastPrompt:'',seed:0};;
